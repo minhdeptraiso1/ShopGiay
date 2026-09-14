@@ -1,0 +1,264 @@
+openapi: 3.0.3
+info:
+  title: Django Backend Base API
+  version: 1.0.0
+  description: API nền tảng dùng lại cho các dự án Django.
+paths:
+  /api/v1/auth/csrf/:
+    get:
+      operationId: api_v1_auth_csrf_retrieve
+      tags:
+      - Authentication
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CsrfTokenOutput'
+          description: ''
+  /api/v1/auth/login/:
+    post:
+      operationId: api_v1_auth_login_create
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginInputRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginOutput'
+          description: ''
+        '401':
+          description: Sai thông tin
+  /api/v1/auth/logout/:
+    post:
+      operationId: api_v1_auth_logout_create
+      tags:
+      - Authentication
+      security:
+      - {}
+      responses:
+        '204':
+          description: Refresh token đã bị thu hồi
+  /api/v1/auth/me/:
+    get:
+      operationId: api_v1_auth_me_retrieve
+      tags:
+      - Profile
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOutput'
+          description: ''
+    patch:
+      operationId: api_v1_auth_me_partial_update
+      tags:
+      - Profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateProfileInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateProfileInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateProfileInputRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOutput'
+          description: ''
+  /api/v1/auth/refresh/:
+    post:
+      operationId: api_v1_auth_refresh_create
+      tags:
+      - Authentication
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshOutput'
+          description: ''
+  /health/live/:
+    get:
+      operationId: health_live_retrieve
+      tags:
+      - Health
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Liveness'
+          description: ''
+  /health/ready/:
+    get:
+      operationId: health_ready_retrieve
+      tags:
+      - Health
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Readiness'
+          description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Readiness'
+          description: ''
+components:
+  schemas:
+    CsrfTokenOutput:
+      type: object
+      properties:
+        csrf_token:
+          type: string
+          readOnly: true
+      required:
+      - csrf_token
+    Liveness:
+      type: object
+      properties:
+        status:
+          type: string
+          readOnly: true
+      required:
+      - status
+    LoginInputRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    LoginOutput:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/UserOutput'
+          readOnly: true
+      required:
+      - access
+      - user
+    PatchedUpdateProfileInputRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          maxLength: 255
+    Readiness:
+      type: object
+      properties:
+        status:
+          type: string
+          readOnly: true
+        checks:
+          allOf:
+          - $ref: '#/components/schemas/ReadinessChecks'
+          readOnly: true
+      required:
+      - checks
+      - status
+    ReadinessChecks:
+      type: object
+      properties:
+        database:
+          type: boolean
+          readOnly: true
+        redis:
+          type: boolean
+          readOnly: true
+      required:
+      - database
+      - redis
+    RefreshOutput:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+      required:
+      - access
+    UserOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+          title: Kích hoạt
+          description: Chỉ định xem người dùng này phải được coi là đang hoạt động.
+            Bạn nên bỏ chọn này thay vì xóa tài khoản.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Ngày tham gia
+      required:
+      - date_joined
+      - email
+      - full_name
+      - id
+      - is_active
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,31 @@
+# Secrets and local environment
+**/.env
+!**/.env.example
+.vscode/
+.idea/
+*.log
+
+# Python
+**/.venv/
+**/.tools/
+**/.uv-cache*/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.ruff_cache/
+**/.coverage
+**/htmlcov/
+**/staticfiles/
+
+# Node/Vite/test output
+**/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/build-cache/
+frontend/playwright-report/
+frontend/test-results/
+frontend/.cache/
+frontend/package-lock.json
+
+# Legacy workflow location; GitHub Actions only reads the repository-root .github
+Base_dijango/.github/
