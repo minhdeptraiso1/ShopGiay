@@ -1,6 +1,6 @@
 # Phase 7 - Recommendation System
 
-**Trạng thái:** Planned  
+**Trạng thái:** Awaiting acceptance  
 **Nhánh đề xuất:** `phase/07-recommendations`  
 **Điều kiện bắt đầu:** Event schema từ Phase 2 đã vận hành; có dữ liệu hoặc dataset thử được gắn nhãn rõ.
 
@@ -46,4 +46,38 @@ raw event giữ 12 tháng rồi tổng hợp/xóa, subject deletion/anonymizatio
 
 Popular, similar và personalized API/UI có fallback, lọc hàng hợp lệ, attribution test được; purchase không
 thể giả từ client; metrics phân biệt offline/sample với production; latency và data-quality report có số liệu.
+
+## Kết quả triển khai
+
+- Catalog hỗ trợ ba loại `footwear`, `accessory`, `care`; size/màu chỉ bắt buộc với giày, còn hàng phụ
+  kiện dùng `option_label` như `Freesize 39–44` hoặc `Chai 250 ml`.
+- Seed catalog có 6 mẫu giày và 3 sản phẩm đi kèm: tất thể thao, bình xịt vệ sinh và bộ bàn chải.
+- Có API popular, similar và personalized với fallback, lọc sản phẩm/SKU còn bán được và time decay.
+- Trang chủ có rail phổ biến/cá nhân hóa; chi tiết giày ưu tiên chèn phụ kiện chăm sóc phù hợp.
+- Impression/click liên kết `recommendation_request_id`; add-cart và purchase dùng last eligible click trong
+  7 ngày. Client không được tự tạo purchase event.
+- STAFF/ADMIN xem số liệu 30 ngày tại `/admin/recommendations`: request, impression, CTR, add-to-cart,
+  purchase và coverage.
+
+## Giới hạn có chủ đích
+
+- Chưa triển khai collaborative filtering vì hiện chỉ có seed/sample data, chưa đủ interaction density để
+  holdout evaluation có ý nghĩa. Weighted content/popular là baseline hiện hành; chỉ mở lại Sprint 4 khi
+  có dữ liệu production và chứng minh Recall@K/NDCG@K tốt hơn baseline.
+- Chưa chạy PostgreSQL integration/E2E trong lần triển khai này vì Docker của máy đang lỗi. Bộ test dùng
+  SQLite/LocMem: 87 backend test pass (1 skip phụ thuộc PostgreSQL), 27 frontend test pass; Django/Ruff,
+  migration drift, OpenAPI, targeted ESLint và production build đều pass. Cần chạy lại migration, seed và
+  nghiệm thu UI trên PostgreSQL sau khi Docker hoạt động.
+
+## Lệnh nghiệm thu sau khi Docker hoạt động
+
+```powershell
+cd Base_dijango
+.\.tools\Scripts\uv.exe run python manage.py migrate
+.\.tools\Scripts\uv.exe run python manage.py seed_catalog
+.\.tools\Scripts\uv.exe run python manage.py runserver
+```
+
+Mở frontend và kiểm tra `/`, `/products/{slug}` và `/admin/recommendations`. Chạy lại `seed_catalog` là
+idempotent, không tạo trùng dữ liệu mẫu.
 

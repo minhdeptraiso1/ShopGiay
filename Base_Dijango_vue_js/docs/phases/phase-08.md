@@ -6,7 +6,7 @@
 
 ## Sprint 1 - Dashboard và doanh thu
 
-- Định nghĩa doanh thu theo payment captured/completed, trừ cancellation/refund theo thời điểm rõ ràng.
+- Định nghĩa doanh thu theo payment captured/completed và cancellation theo thời điểm rõ ràng.
 - API aggregate theo date range/timezone; permission riêng cho từng nhóm báo cáo.
 - FE dashboard có filter, loading/empty/error và so sánh kỳ; không tính tiền ở client.
 - Index/query plan được kiểm tra; aggregate lớn dùng bảng tổng hợp/job khi có bằng chứng cần thiết.
@@ -15,13 +15,13 @@
 
 - Bán chạy theo quantity và net revenue.
 - Tồn thấp, ageing và stock movement.
-- Tỷ lệ hủy theo reason/status, return/refund amount và turnaround time.
+- Tỷ lệ hủy theo reason/status, tỷ lệ đổi hàng và thời gian xử lý đổi.
 - Recommendation impressions/CTR/cart/purchase/coverage theo strategy/placement.
 
 ## Sprint 3 - Staff, audit và export
 
 - Hoàn thiện tạo/deactivate STAFF, gán role/permission và ngăn tự nâng quyền.
-- Audit log append-only cho role, product, stock, order, voucher, return, refund và settings quan trọng.
+- Audit log append-only cho role, product, stock, order, voucher, exchange và settings quan trọng.
 - Export CSV theo filter và permission; spreadsheet formula injection được neutralize.
 
 ## API/màn hình dự kiến
@@ -32,7 +32,7 @@ export controls.
 
 ## Tiêu chí nghiệm thu
 
-Số dashboard đối soát được với order/payment/refund mẫu; timezone và date boundary có test; query không
+Số dashboard đối soát được với order/payment/exchange mẫu; timezone và date boundary có test; query không
 N+1; export an toàn; chỉ đúng permission xem dữ liệu; mọi thao tác quản trị quan trọng có audit.
 
 ## Cần chốt trước khi duyệt

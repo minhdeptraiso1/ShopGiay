@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
-from .models import User
+from .models import Address, LoyaltyAccount, LoyaltyTransaction, User
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -43,3 +43,26 @@ class UserAdmin(DjangoUserAdmin):
             },
         ),
     )
+
+
+@admin.register(Address)
+class AddressAdmin(admin.ModelAdmin):
+    list_display = ("recipient_name", "user", "phone_number", "province", "is_default")
+    list_filter = ("is_default", "province")
+    search_fields = ("recipient_name", "phone_number", "user__email", "street_address")
+    readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(LoyaltyAccount)
+class LoyaltyAccountAdmin(admin.ModelAdmin):
+    list_display = ("user", "balance", "updated_at")
+    search_fields = ("user__email", "user__full_name")
+    readonly_fields = ("updated_at",)
+
+
+@admin.register(LoyaltyTransaction)
+class LoyaltyTransactionAdmin(admin.ModelAdmin):
+    list_display = ("account", "kind", "points", "balance_after", "order", "created_at")
+    list_filter = ("kind",)
+    search_fields = ("account__user__email", "order__number", "note")
+    readonly_fields = ("created_at",)

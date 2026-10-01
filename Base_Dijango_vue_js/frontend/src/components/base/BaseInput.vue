@@ -7,7 +7,7 @@ interface Props {
   modelValue: string;
   id: string;
   name: string;
-  type?: "text" | "email" | "password";
+  type?: "text" | "email" | "password" | "number" | "datetime-local" | "url";
   autocomplete?: string;
   placeholder?: string;
   disabled?: boolean;
@@ -47,11 +47,11 @@ const actualType = computed(() =>
       :readonly="props.readonly"
       :required="props.required"
       :aria-invalid="props.invalid || undefined"
-      class="min-h-11 w-full rounded-[var(--radius-sm)] border bg-white px-3 text-base text-[var(--color-text)] shadow-sm transition-colors placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:text-sm"
+      class="min-h-12 w-full rounded-xl border bg-[var(--color-input-bg,#ffffff)] px-3.5 text-base text-[var(--color-text)] shadow-sm transition-all placeholder:text-slate-500 focus:outline-none focus:border-[var(--color-focus,#10b981)] focus:ring-2 focus:ring-[var(--color-focus,#10b981)]/20 disabled:cursor-not-allowed disabled:bg-slate-800/40 disabled:text-slate-500 sm:text-sm"
       :class="[
         props.invalid
-          ? 'border-[var(--color-error)]'
-          : 'border-[var(--color-border)] hover:border-blue-400',
+          ? 'border-[var(--color-error)] focus:border-[var(--color-error)] focus:ring-[var(--color-error)]/20'
+          : 'border-[var(--color-border)] hover:border-emerald-500/50',
         props.type === 'password' && 'pr-16',
       ]"
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
@@ -60,7 +60,7 @@ const actualType = computed(() =>
     <button
       v-if="props.type === 'password'"
       type="button"
-      class="absolute inset-y-0 right-1 min-w-12 cursor-pointer rounded-md px-2 text-sm font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary-soft)]"
+      class="absolute inset-y-0 right-1.5 my-auto flex h-9 min-w-12 items-center justify-center cursor-pointer rounded-lg px-2 text-xs font-bold uppercase tracking-wider text-[var(--color-primary)] hover:bg-[var(--color-primary-soft)] transition-colors"
       :aria-label="passwordVisible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
       @click="passwordVisible = !passwordVisible"
     >

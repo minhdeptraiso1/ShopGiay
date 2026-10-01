@@ -4,7 +4,15 @@ import { authClient, apiClient } from "@/lib/http/client";
 import { ensureCsrfToken } from "@/lib/http/csrf";
 import { toAppError } from "@/lib/http/errors";
 
-import type { LoginCredentials, LoginResponse, RefreshResponse, User } from "../types";
+import type {
+  LoginCredentials,
+  LoginResponse,
+  PasswordResetConfirmPayload,
+  RefreshResponse,
+  RegisterPayload,
+  RegisterResponse,
+  User,
+} from "../types";
 
 async function csrfPost<T>(url: string, data: unknown = {}): Promise<T> {
   async function send(forceCsrf = false) {
@@ -23,6 +31,19 @@ async function csrfPost<T>(url: string, data: unknown = {}): Promise<T> {
 
 export function loginRequest(credentials: LoginCredentials): Promise<LoginResponse> {
   return csrfPost("/api/v1/auth/login/", credentials);
+}
+
+export function registerRequest(payload: RegisterPayload): Promise<RegisterResponse> {
+  return csrfPost("/api/v1/auth/register/", payload);
+}
+
+export async function requestPasswordReset(email: string): Promise<string> {
+  const response = await csrfPost<{ message: string }>("/api/v1/auth/password-reset/", { email });
+  return response.message;
+}
+
+export async function confirmPasswordReset(payload: PasswordResetConfirmPayload): Promise<void> {
+  await csrfPost("/api/v1/auth/password-reset/confirm/", payload);
 }
 
 export function refreshRequest(): Promise<RefreshResponse> {

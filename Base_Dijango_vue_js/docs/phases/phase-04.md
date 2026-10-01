@@ -1,8 +1,12 @@
 # Phase 4 - Xử lý đơn và thanh toán online
 
-**Trạng thái:** Planned  
-**Nhánh đề xuất:** `phase/04-fulfillment-payment`  
+**Trạng thái:** Done (cấu hình sandbox E2E được hoãn)
+**Nhánh đề xuất:** `phase/04-fulfillment-payment`
 **Điều kiện bắt đầu:** Phase 3 Done; chọn cổng thanh toán và có sandbox credentials.
+
+**Phạm vi đã duyệt:** provider VNPay sandbox 2.1.0, reservation 15 phút; backend triển khai trước và
+frontend được tích hợp bổ sung ngày 2026-09-29. Secret chỉ nằm trong `.env` local và phải được rotate do
+đã từng được chia sẻ trong hội thoại.
 
 ## Sprint 1 - Staff fulfillment
 
@@ -41,3 +45,32 @@ không được tin; stock reservation được giải phóng; idempotency và o
 Provider, thời hạn giữ hàng, credential sandbox, callback domains và phí giao dịch. Nếu thiếu tài khoản,
 Sprint 3 được đánh dấu Blocked, không dùng mock để tuyên bố tích hợp hoàn tất.
 
+## Kết quả backend hiện tại
+
+- Hoàn tất staff/admin order queue, detail và transition state machine có `expected_updated_at`, row lock,
+  permission và status history.
+- Thêm payment, attempt, event và inventory reservation; order VNPay giữ available stock 15 phút, capture
+  khi IPN paid và hoàn đúng một lần khi fail/cancel/expiry.
+- Tạo URL VNPay 2.1.0 bằng query đã sort và HMAC-SHA512; IPN xác minh checksum, merchant, amount,
+  transaction reference, trạng thái và xử lý trùng/sai thứ tự.
+- Thêm command `release_expired_reservations` và `reconcile_vnpay_payments`; secret chỉ nằm trong `.env`
+  local đã Git ignore.
+- Migration `catalog.0003`, `orders.0002` và `orders.0003` đã áp dụng vào PostgreSQL local. 68 backend test pass trực tiếp
+  trên PostgreSQL, coverage 89%; Ruff, Django checks, migration drift và OpenAPI validation pass.
+- Contract frontend nằm tại [phase-04-backend-api.md](phase-04-backend-api.md).
+- Frontend checkout đã cho chọn COD/VNPay, tự tạo payment attempt cho đơn VNPay và chỉ hiển thị CTA thanh
+  toán lại trên đúng đơn VNPay chưa thanh toán. STAFF đã đọc được SKU để vận hành kho mà không có quyền
+  thay đổi catalog.
+
+## Note công việc VNPay hoãn lại
+
+Code và luồng frontend/backend đã sẵn sàng, nhưng cấu hình sandbox và giao dịch end-to-end chưa được thực
+hiện vì VNPay không gọi được IPN `localhost`. Theo quyết định ngày 2026-09-29, phần vận hành này được hoãn
+để chuyển sang Phase 5; trạng thái `Done` chỉ xác nhận phạm vi code, không có nghĩa sandbox đã pass.
+
+Trước release phải hoàn thành:
+
+1. Mở public HTTPS URL/tunnel cho backend.
+2. Đăng ký `https://<public-backend>/api/v1/payments/vnpay/ipn/` tại merchant sandbox.
+3. Thực hiện giao dịch test và xác minh IPN cập nhật `paid`, capture reservation đúng một lần.
+4. Xác minh payment fail/expiry giải phóng tồn và chạy reconciliation không còn event bất thường.

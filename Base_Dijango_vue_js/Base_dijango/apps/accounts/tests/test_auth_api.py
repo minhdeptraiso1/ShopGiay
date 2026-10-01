@@ -37,7 +37,7 @@ def test_login_sets_secure_refresh_cookie_contract(csrf_client):
 
     cookie = response.cookies[settings.REFRESH_TOKEN_COOKIE_NAME]
     assert cookie["httponly"] is True
-    assert cookie["secure"] is settings.REFRESH_TOKEN_COOKIE_SECURE
+    assert bool(cookie["secure"]) is settings.REFRESH_TOKEN_COOKIE_SECURE
     assert cookie["samesite"] == "Lax"
     assert cookie["path"] == "/api/v1/auth/"
 

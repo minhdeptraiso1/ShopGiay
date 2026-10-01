@@ -1,6 +1,6 @@
 # Phase 0 - Khảo sát và chuẩn hóa base
 
-**Trạng thái:** Awaiting approval  
+**Trạng thái:** Done
 **Nhánh đề xuất:** `phase/00-base`  
 **Phụ thuộc:** Không
 
@@ -21,21 +21,21 @@ minh. Không triển khai chức năng commerce hoặc Phase 1.
 
 | ID | Loại | Công việc | Phụ thuộc | Đầu ra / nghiệm thu | Trạng thái |
 |---|---|---|---|---|---|
-| P00-S01-DOC01 | Docs | Tạo audit, business rules và progress log không trùng tài liệu hiện có | Approval | Tài liệu phản ánh source thực tế | Awaiting approval |
-| P00-S01-INT01 | Integration | Cài dependency đúng lockfile, không nâng version | Approval | `uv sync --frozen`, pnpm 11.19 frozen install thành công | Awaiting approval |
-| P00-S01-TEST01 | Test | Chạy backend gates | INT01, test DB/Redis | Ruff, Django check, migration check, pytest, OpenAPI có kết quả | Awaiting approval |
-| P00-S01-TEST02 | Test | Chạy frontend gates | INT01 | Typecheck, lint, format check, Vitest, build có kết quả | Awaiting approval |
-| P00-S01-TEST03 | Test | Chạy E2E auth nếu full stack sẵn sàng | TEST01-02 | CSRF, cookie, reload, profile, logout pass | Awaiting approval |
+| P00-S01-DOC01 | Docs | Tạo audit, business rules và progress log không trùng tài liệu hiện có | Approval | Tài liệu phản ánh source thực tế | Completed |
+| P00-S01-INT01 | Integration | Cài dependency đúng lockfile, không nâng version | Approval | `uv sync --frozen`, pnpm 11.19 frozen install thành công | Completed |
+| P00-S01-TEST01 | Test | Chạy backend gates | INT01, test DB/Redis | Static gates pass; 23 pytest pass bằng SQLite/LocMem; PostgreSQL/Redis chưa xác minh do Docker daemon | Blocked |
+| P00-S01-TEST02 | Test | Chạy frontend gates | INT01 | Typecheck, lint, format check, 10 Vitest test và build pass | Completed |
+| P00-S01-TEST03 | Test | Chạy E2E auth nếu full stack sẵn sàng | TEST01-02 | Chưa chạy vì PostgreSQL/Redis/Docker chưa sẵn sàng | Blocked |
 
 ## Sprint 0B-S02 - Sửa và chuẩn hóa nền
 
 | ID | Loại | Công việc | Phụ thuộc | Đầu ra / nghiệm thu | Trạng thái |
 |---|---|---|---|---|---|
-| P00-S02-BE01 | BE | Sửa lỗi backend do baseline phát hiện, không đổi contract ngoài duyệt | S01 | Backend gates pass | Awaiting approval |
-| P00-S02-FE01 | FE | Sửa lỗi frontend do baseline phát hiện | S01 | Frontend gates pass | Awaiting approval |
-| P00-S02-API01 | BE/Docs | Đồng bộ tài liệu logout với source idempotent hiện tại | S01 | Source, test và docs không mâu thuẫn | Awaiting approval |
-| P00-S02-API02 | BE/Test | Gắn error schema chung cho API auth hiện có | S01 | OpenAPI validate không warning, runtime contract không đổi | Awaiting approval |
-| P00-S02-DOC01 | Docs | Chuẩn hóa hướng dẫn tool/version/path local | S01 | Máy mới làm theo một quy trình duy nhất | Awaiting approval |
+| P00-S02-BE01 | BE | Sửa lỗi backend do baseline phát hiện, không đổi contract ngoài duyệt | S01 | Cookie contract test chạy ổn định trên Windows | Completed |
+| P00-S02-FE01 | FE | Sửa lỗi frontend do baseline phát hiện | S01 | Frontend gates pass với cache và line ending Windows | Completed |
+| P00-S02-API01 | BE/Docs | Đồng bộ tài liệu logout với source idempotent hiện tại | S01 | Source, test và docs không mâu thuẫn | Completed |
+| P00-S02-API02 | BE/Test | Gắn error schema chung cho API auth hiện có | S01 | OpenAPI validate không warning, runtime contract không đổi | Completed |
+| P00-S02-DOC01 | Docs | Chuẩn hóa hướng dẫn tool/version/path local | S01 | README không còn phụ thuộc đường dẫn máy cá nhân | Completed |
 
 ## Ảnh hưởng dự kiến
 
@@ -51,8 +51,14 @@ minh. Không triển khai chức năng commerce hoặc Phase 1.
 - Không có chức năng Phase 1 trở đi và không có migration ngoài phạm vi.
 - Báo cáo lệnh đã chạy, kết quả, phần chưa kiểm chứng và trạng thái `Awaiting acceptance`.
 
+## Kết quả thực hiện
+
+- Backend: Ruff lint/format, Django check, migration drift và OpenAPI validation pass.
+- Backend fallback: 23/23 pytest pass, coverage 90% trên SQLite + LocMem.
+- Frontend: typecheck, ESLint, Prettier, 10/10 Vitest tests và production build pass.
+- Chưa xác minh: PostgreSQL/Redis pytest và browser E2E vì Docker daemon không phản hồi.
+- Không có model change hoặc migration mới; không triển khai chức năng Phase 1.
+
 ## Approval gate
 
-Lệnh xác nhận: **`Duyệt Phase 0`**. Việc tạo bộ tài liệu phase không tự động duyệt phần cài đặt hoặc sửa
-source của Phase 0B.
-
+Phase 0 đã được người dùng nghiệm thu khi duyệt và yêu cầu bắt đầu Phase 1 ngày 2026-09-14.
