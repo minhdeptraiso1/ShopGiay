@@ -12,9 +12,12 @@ export default defineConfig({
     { name: "desktop-chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile-chromium", use: { ...devices["Pixel 5"] } },
   ],
-  webServer: {
-    command: "pnpm dev --host 127.0.0.1",
-    url: "http://127.0.0.1:5173",
-    reuseExistingServer: true,
-  },
+  webServer:
+    process.env.E2E_SKIP_WEB_SERVER === "1"
+      ? undefined
+      : {
+          command: "node node_modules/vite/bin/vite.js --host 127.0.0.1",
+          url: "http://127.0.0.1:5173",
+          reuseExistingServer: true,
+        },
 });

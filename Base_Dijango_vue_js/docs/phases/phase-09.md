@@ -7,9 +7,9 @@
 ## Sprint 1 - E2E, security và concurrency
 
 - E2E guest catalog, registration, address, cart, COD, online payment sandbox, order tracking, review,
-  return/refund và admin fulfillment.
+  exchange và admin fulfillment.
 - Kiểm tra horizontal/vertical authorization và object ownership với ID của user khác.
-- Test concurrent stock, voucher limit, duplicate order, duplicate/out-of-order webhook và refund race.
+- Test concurrent stock, voucher limit, duplicate order, duplicate/out-of-order webhook và exchange race.
 - Kiểm tra CSRF, CORS, cookie flags, secret/log redaction, upload validation và rate limit assumptions.
 
 ## Sprint 2 - UX, accessibility và performance

@@ -1,6 +1,9 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand, CommandError
+
+from apps.accounts.roles import BusinessRole
 
 
 class Command(BaseCommand):
@@ -25,7 +28,7 @@ class Command(BaseCommand):
         user = user_model.objects.filter(email__iexact=email).first()
 
         if user is None:
-            user_model.objects.create_user(
+            user = user_model.objects.create_user(
                 email=email,
                 password=password,
                 full_name="Demo User",
@@ -33,11 +36,13 @@ class Command(BaseCommand):
                 is_staff=False,
                 is_superuser=False,
             )
+            user.groups.add(Group.objects.get(name=BusinessRole.CUSTOMER))
             self.stdout.write(self.style.SUCCESS(f"Created demo user: {email}"))
             return
 
+        user.groups.add(Group.objects.get(name=BusinessRole.CUSTOMER))
         if not options["reset_password"]:
-            self.stdout.write(f"Demo user already exists: {email}; no changes made")
+            self.stdout.write(f"Demo user ready with CUSTOMER role: {email}")
             return
 
         user.set_password(password)

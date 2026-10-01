@@ -3,14 +3,27 @@ from django.middleware.csrf import get_token
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import permissions, status
 from rest_framework.authentication import CSRFCheck
-from rest_framework.exceptions import APIException, AuthenticationFailed, PermissionDenied
+from rest_framework.exceptions import (
+    APIException,
+    AuthenticationFailed,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
-from apps.accounts.services import update_profile
+from apps.accounts.services import (
+    DuplicateEmailError,
+    InvalidPasswordResetTokenError,
+    confirm_password_reset,
+    register_customer,
+    request_password_reset,
+    update_profile,
+)
 from common.exceptions import api_exception_handler
+from common.serializers import ApiErrorSerializer
 
 from .cookies import delete_refresh_cookie, prevent_sensitive_response_caching, set_refresh_cookie
 from .serializers import (
@@ -19,7 +32,12 @@ from .serializers import (
     EmptyInputSerializer,
     LoginInputSerializer,
     LoginOutputSerializer,
+    MessageOutputSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
     RefreshOutputSerializer,
+    RegisterInputSerializer,
+    RegisterOutputSerializer,
     UpdateProfileInputSerializer,
     UserOutputSerializer,
 )
@@ -31,6 +49,14 @@ class LoginThrottle(AnonRateThrottle):
 
 class RefreshThrottle(AnonRateThrottle):
     scope = "refresh"
+
+
+class RegisterThrottle(AnonRateThrottle):
+    scope = "register"
+
+
+class PasswordResetThrottle(AnonRateThrottle):
+    scope = "password_reset"
 
 
 def _dummy_get_response(request):
@@ -68,7 +94,13 @@ class LoginView(EnforceCSRFMixin, APIView):
     @extend_schema(
         tags=["Authentication"],
         request=LoginInputSerializer,
-        responses={200: LoginOutputSerializer, 401: OpenApiResponse(description="Sai thông tin")},
+        responses={
+            200: LoginOutputSerializer,
+            400: ApiErrorSerializer,
+            401: ApiErrorSerializer,
+            403: ApiErrorSerializer,
+            429: ApiErrorSerializer,
+        },
     )
     def post(self, request):
         serializer = LoginInputSerializer(data=request.data, context={"request": request})
@@ -84,6 +116,92 @@ class LoginView(EnforceCSRFMixin, APIView):
         return prevent_sensitive_response_caching(response)
 
 
+class RegisterView(EnforceCSRFMixin, APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    throttle_classes = [RegisterThrottle]
+
+    @extend_schema(
+        tags=["Authentication"],
+        request=RegisterInputSerializer,
+        responses={
+            201: RegisterOutputSerializer,
+            400: ApiErrorSerializer,
+            403: ApiErrorSerializer,
+            429: ApiErrorSerializer,
+        },
+    )
+    def post(self, request):
+        serializer = RegisterInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            user = register_customer(
+                email=serializer.validated_data["email"],
+                full_name=serializer.validated_data["full_name"],
+                password=serializer.validated_data["password"],
+            )
+        except DuplicateEmailError as exc:
+            raise ValidationError({"email": "Email này đã được sử dụng."}, code="unique") from exc
+        return Response({"user": UserOutputSerializer(user).data}, status=status.HTTP_201_CREATED)
+
+
+class PasswordResetRequestView(EnforceCSRFMixin, APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    throttle_classes = [PasswordResetThrottle]
+
+    @extend_schema(
+        tags=["Authentication"],
+        request=PasswordResetRequestSerializer,
+        responses={
+            202: MessageOutputSerializer,
+            400: ApiErrorSerializer,
+            403: ApiErrorSerializer,
+            429: ApiErrorSerializer,
+        },
+    )
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        request_password_reset(email=serializer.validated_data["email"])
+        return Response(
+            {"message": "Nếu email tồn tại, hướng dẫn đặt lại mật khẩu đã được gửi."},
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class PasswordResetConfirmView(EnforceCSRFMixin, APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    throttle_classes = [PasswordResetThrottle]
+
+    @extend_schema(
+        tags=["Authentication"],
+        request=PasswordResetConfirmSerializer,
+        responses={
+            204: OpenApiResponse(description="Mật khẩu đã được cập nhật"),
+            400: ApiErrorSerializer,
+            403: ApiErrorSerializer,
+            429: ApiErrorSerializer,
+        },
+    )
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            confirm_password_reset(
+                uid=serializer.validated_data["uid"],
+                token=serializer.validated_data["token"],
+                new_password=serializer.validated_data["new_password"],
+            )
+        except InvalidPasswordResetTokenError as exc:
+            raise ValidationError(
+                {"token": "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn."},
+                code="invalid_reset_token",
+            ) from exc
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class RefreshView(EnforceCSRFMixin, APIView):
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
@@ -95,7 +213,13 @@ class RefreshView(EnforceCSRFMixin, APIView):
     @extend_schema(
         tags=["Authentication"],
         request=EmptyInputSerializer,
-        responses={200: RefreshOutputSerializer},
+        responses={
+            200: RefreshOutputSerializer,
+            400: ApiErrorSerializer,
+            401: ApiErrorSerializer,
+            403: ApiErrorSerializer,
+            429: ApiErrorSerializer,
+        },
     )
     def post(self, request):
         refresh_token = request.COOKIES.get(settings.REFRESH_TOKEN_COOKIE_NAME)
@@ -123,7 +247,10 @@ class LogoutView(EnforceCSRFMixin, APIView):
     @extend_schema(
         tags=["Authentication"],
         request=EmptyInputSerializer,
-        responses={204: OpenApiResponse(description="Refresh token đã bị thu hồi")},
+        responses={
+            204: OpenApiResponse(description="Refresh token đã bị thu hồi"),
+            403: ApiErrorSerializer,
+        },
     )
     def post(self, request):
         refresh_token = request.COOKIES.get(settings.REFRESH_TOKEN_COOKIE_NAME)
@@ -138,14 +265,18 @@ class LogoutView(EnforceCSRFMixin, APIView):
 
 
 class MeView(APIView):
-    @extend_schema(tags=["Profile"], responses={200: UserOutputSerializer})
+    @extend_schema(tags=["Profile"], responses={200: UserOutputSerializer, 401: ApiErrorSerializer})
     def get(self, request):
         return Response(UserOutputSerializer(request.user).data)
 
     @extend_schema(
         tags=["Profile"],
         request=UpdateProfileInputSerializer,
-        responses={200: UserOutputSerializer},
+        responses={
+            200: UserOutputSerializer,
+            400: ApiErrorSerializer,
+            401: ApiErrorSerializer,
+        },
     )
     def patch(self, request):
         serializer = UpdateProfileInputSerializer(data=request.data)

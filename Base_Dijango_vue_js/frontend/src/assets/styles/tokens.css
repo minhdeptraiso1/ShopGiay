@@ -1,26 +1,319 @@
-:root {
-  --color-background: #eff6ff;
-  --color-surface: #ffffff;
-  --color-surface-subtle: #f8fafc;
-  --color-text: #172554;
-  --color-text-muted: #475569;
-  --color-border: #bfdbfe;
-  --color-primary: #1e40af;
-  --color-primary-hover: #1e3a8a;
-  --color-primary-soft: #dbeafe;
-  --color-success: #15803d;
-  --color-success-soft: #dcfce7;
-  --color-warning: #a16207;
-  --color-warning-soft: #fef9c3;
-  --color-error: #b91c1c;
-  --color-error-soft: #fee2e2;
-  --color-focus: #2563eb;
+:root,
+html.dark,
+[data-theme="dark"] {
+  --color-background: #090a0f;
+  --color-surface: #12151e;
+  --color-surface-subtle: #161a26;
+  --color-text: #ffffff;
+  --color-text-muted: #94a3b8;
+  --color-border: rgba(255, 255, 255, 0.12);
+  --color-primary: #10b981;
+  --color-primary-hover: #059669;
+  --color-primary-soft: rgba(16, 185, 129, 0.15);
+  --color-primary-btn-bg: #10b981;
+  --color-primary-btn-text: #000000;
+  --color-input-bg: #0b0e14;
+  --color-label-text: #e2e8f0;
+  --color-focus: #10b981;
+  --color-success: #10b981;
+  --color-success-soft: rgba(16, 185, 129, 0.15);
+  --color-warning: #f59e0b;
+  --color-warning-soft: rgba(245, 158, 11, 0.15);
+  --color-error: #f43f5e;
+  --color-error-soft: rgba(244, 63, 94, 0.15);
   --font-sans:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
-  --shadow-surface: 0 12px 32px rgb(30 64 175 / 0.08);
+  --shadow-surface: 0 25px 60px -15px rgba(0, 0, 0, 0.9);
   --control-height: 2.75rem;
   --transition-fast: 180ms ease;
+}
+
+html.light,
+[data-theme="light"] {
+  --color-background: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f1f5f9;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-primary: #059669;
+  --color-primary-hover: #047857;
+  --color-primary-soft: rgba(16, 185, 129, 0.12);
+  --color-primary-btn-bg: #10b981;
+  --color-primary-btn-text: #000000;
+  --color-input-bg: #ffffff;
+  --color-label-text: #1e293b;
+  --color-focus: #10b981;
+  --color-success: #15803d;
+  --color-success-soft: #dcfce7;
+  --color-warning: #b45309;
+  --color-warning-soft: #fef3c7;
+  --color-error: #e11d48;
+  --color-error-soft: #ffe4e6;
+  --shadow-surface: 0 12px 32px rgba(15, 23, 42, 0.08);
+}
+
+/* Light Mode Overrides for unified modern light appearance */
+html.light body,
+html.light .bg-\[\#090a0f\] {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+html.light .bg-\[\#0c0e17\],
+html.light .bg-\[\#0c0e17\]\/85,
+html.light .bg-\[\#0c0e17\]\/80,
+html.light .bg-\[\#090a0f\]\/90,
+html.light .bg-\[\#090a0f\]\/95 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html.light .bg-\[\#12151e\],
+html.light .bg-\[\#12151e\]\/90,
+html.light .bg-\[\#12151e\]\/85,
+html.light .bg-\[\#12151e\]\/80,
+html.light .bg-\[\#121722\]\/90,
+html.light .auth-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+
+html.light .bg-\[\#07080c\],
+html.light .bg-\[\#0d1017\] {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html.light
+  .text-white:not(.always-white-text):not(.always-white-text *):not(.category-card-title):not(
+    .category-card-sub
+  ) {
+  color: #0f172a !important;
+}
+
+html.light #categories h2 {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-200,
+html.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+html.light .text-slate-400,
+html.light .text-slate-500 {
+  color: #64748b !important;
+}
+
+html.light .border-white\/5,
+html.light .border-white\/10,
+html.light .border-white\/15,
+html.light .border-white\/20,
+html.light .border-white\/25 {
+  border-color: #e2e8f0 !important;
+}
+
+html.light .bg-white\/5,
+html.light .bg-white\/10 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html.light input:not([disabled]) {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input:disabled {
+  background-color: #f1f5f9 !important;
+  color: #94a3b8 !important;
+}
+
+/* Emerald accents stay vibrant in light mode */
+html.light .text-emerald-400 {
+  color: #059669 !important;
+}
+
+html.light .bg-emerald-500\/10,
+html.light .bg-emerald-500\/15,
+html.light .bg-emerald-500\/20 {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+html.light .bg-emerald-500,
+html.light button.bg-emerald-500,
+html.light a.bg-emerald-500 {
+  background-color: #10b981 !important;
+  color: #000000 !important;
+}
+
+/* Category Showcase Cards: Text on images stays crystal white in all modes */
+.always-white-text,
+.always-white-text *,
+.category-card-title,
+html.light .always-white-text,
+html.light .always-white-text *,
+html.light .category-card-title,
+html.light #categories .category-card-title,
+html.light #categories h3 {
+  color: #ffffff !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.75) !important;
+}
+
+.category-card-sub,
+html.light .category-card-sub,
+html.light #categories .category-card-sub,
+html.light #categories .always-white-text p {
+  color: rgba(255, 255, 255, 0.9) !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75) !important;
+}
+
+/* Hero Sneaker Spec Tags in Dark Mode: Frosted slate glass with glowing color labels */
+.hero-spec-tag {
+  background-color: rgba(15, 23, 42, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  box-shadow:
+    0 20px 40px -10px rgba(0, 0, 0, 0.7),
+    0 0 1px 1px rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(16px) !important;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.hero-spec-tag:hover {
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  box-shadow:
+    0 25px 50px -10px rgba(0, 0, 0, 0.9),
+    0 0 15px rgba(255, 255, 255, 0.1) !important;
+}
+
+.hero-spec-tag .spec-value {
+  color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+.hero-spec-tag .spec-emerald {
+  color: #34d399 !important;
+}
+
+.hero-spec-tag .spec-sky {
+  color: #38bdf8 !important;
+}
+
+.hero-spec-tag .spec-amber {
+  color: #fbbf24 !important;
+}
+
+/* Hero Sneaker Spec Tags in Light Mode: Frosted white card with sharp text */
+html.light .hero-spec-tag {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #cbd5e1 !important;
+  box-shadow:
+    0 12px 30px -4px rgba(0, 0, 0, 0.12),
+    0 4px 8px -2px rgba(0, 0, 0, 0.06) !important;
+  backdrop-filter: blur(16px) !important;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+html.light .hero-spec-tag:hover {
+  border-color: #94a3b8 !important;
+  box-shadow: 0 15px 35px -4px rgba(0, 0, 0, 0.16) !important;
+}
+
+html.light .hero-spec-tag .spec-value {
+  color: #0f172a !important;
+  font-weight: 900 !important;
+}
+
+html.light .hero-spec-tag .spec-emerald {
+  color: #059669 !important;
+}
+
+html.light .hero-spec-tag .spec-sky {
+  color: #0284c7 !important;
+}
+
+html.light .hero-spec-tag .spec-amber {
+  color: #d97706 !important;
+}
+
+/* Hero Title Gradient: White-to-emerald in Dark, Slate-to-emerald in Light */
+.hero-title-gradient {
+  background-image: linear-gradient(to right, #ffffff 0%, #e2e8f0 35%, #10b981 100%);
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  display: inline-block;
+}
+
+html.light .hero-title-gradient {
+  background-image: linear-gradient(to right, #0f172a 0%, #1e293b 35%, #059669 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
+
+/* Auth Cards in Light Mode (Login, Register, Forgot Password, Reset Password) */
+html.light .auth-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light .auth-card h1 {
+  color: #0f172a !important;
+}
+
+html.light .auth-card p {
+  color: #64748b !important;
+}
+
+html.light .auth-card label,
+html.light .auth-card label * {
+  color: #1e293b !important;
+  font-weight: 700 !important;
+}
+
+html.light .auth-card input {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.light .auth-card input:focus {
+  background-color: #ffffff !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+}
+
+html.light .auth-card .text-slate-400 {
+  color: #64748b !important;
+}
+
+html.light .auth-card .text-slate-300 {
+  color: #334155 !important;
+}
+
+html.light .auth-card .text-emerald-400 {
+  color: #059669 !important;
+}
+
+html.light .auth-card .text-emerald-400:hover {
+  color: #047857 !important;
 }

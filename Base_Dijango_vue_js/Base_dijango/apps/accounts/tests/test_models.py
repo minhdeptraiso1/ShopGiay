@@ -5,6 +5,8 @@ from django.core.management import call_command
 from django.db import IntegrityError, transaction
 from django.test import override_settings
 
+from apps.accounts.roles import BusinessRole
+
 User = get_user_model()
 
 
@@ -49,3 +51,49 @@ def test_seed_dev_user_creates_login_ready_account():
     assert user.is_active is True
     assert user.is_staff is False
     assert user.is_superuser is False
+    assert user.groups.filter(name=BusinessRole.CUSTOMER).exists()
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)
+def test_seed_dev_user_repairs_missing_customer_role():
+    user = User.objects.create_user("demo@example.com", "123456")
+    user.groups.clear()
+
+    call_command("seed_dev_user", email=user.email, password="123456", verbosity=0)
+
+    assert user.groups.filter(name=BusinessRole.CUSTOMER).exists()
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True, DEMO_USER_PASSWORD="123456")
+def test_seed_dev_accounts_creates_and_repairs_all_local_roles():
+    call_command("seed_dev_accounts", verbosity=0)
+
+    expected = {
+        "customer@example.com": (BusinessRole.CUSTOMER, False, False),
+        "staff@example.com": (BusinessRole.STAFF, True, False),
+        "admin@example.com": (BusinessRole.ADMIN, True, True),
+    }
+    for email, (role, is_staff, is_superuser) in expected.items():
+        user = User.objects.get(email=email)
+        assert user.check_password("123456")
+        assert user.is_active is True
+        assert user.is_staff is is_staff
+        assert user.is_superuser is is_superuser
+        assert list(user.groups.values_list("name", flat=True)) == [role]
+
+    admin = User.objects.get(email="admin@example.com")
+    admin.set_password("changed-password")
+    admin.is_staff = False
+    admin.is_superuser = False
+    admin.save()
+    admin.groups.clear()
+
+    call_command("seed_dev_accounts", verbosity=0)
+
+    admin.refresh_from_db()
+    assert admin.check_password("123456")
+    assert admin.is_staff is True
+    assert admin.is_superuser is True
+    assert list(admin.groups.values_list("name", flat=True)) == [BusinessRole.ADMIN]

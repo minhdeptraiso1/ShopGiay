@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 
-import type { User } from "../types";
+import type { BusinessRole, User } from "../types";
 
 const LOGOUT_PENDING_KEY = "django-base.logout-pending";
 
@@ -40,6 +40,14 @@ export const useAuthStore = defineStore("auth", () => {
     else localStorage.removeItem(LOGOUT_PENDING_KEY);
   }
 
+  function hasRole(role: BusinessRole) {
+    return user.value?.roles.includes(role) ?? false;
+  }
+
+  function hasPermission(permission: string) {
+    return user.value?.permissions.includes(permission) ?? false;
+  }
+
   return {
     user,
     accessToken,
@@ -49,6 +57,8 @@ export const useAuthStore = defineStore("auth", () => {
     logoutPending,
     logoutError,
     isAuthenticated,
+    hasRole,
+    hasPermission,
     setAccessToken,
     setSession,
     clearSession,

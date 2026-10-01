@@ -23,7 +23,11 @@ describe("LoginPage", () => {
     setActivePinia(pinia);
     const router = createRouter({
       history: createMemoryHistory(),
-      routes: [{ path: "/login", component: LoginPage }],
+      routes: [
+        { path: "/login", component: LoginPage },
+        { path: "/register", component: { template: "<div />" } },
+        { path: "/forgot-password", component: { template: "<div />" } },
+      ],
     });
     await router.push("/login");
     await router.isReady();

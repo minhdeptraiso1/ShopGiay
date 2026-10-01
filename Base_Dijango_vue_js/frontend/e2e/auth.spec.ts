@@ -17,7 +17,7 @@ test("CSRF, HttpOnly cookie, reload, profile and logout", async ({ page, context
   });
 
   await page.reload();
-  await expect(page.getByRole("heading", { name: /Xin chào/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Đăng xuất" })).toBeVisible();
   await page.getByRole("link", { name: "Hồ sơ", exact: true }).click();
   await page.getByLabel("Họ và tên").fill("Người dùng thử");
   await page.getByRole("button", { name: "Lưu thay đổi" }).click();

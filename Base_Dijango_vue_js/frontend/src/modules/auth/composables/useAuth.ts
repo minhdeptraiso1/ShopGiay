@@ -49,7 +49,15 @@ export function useAuth() {
     try {
       const response = await loginRequest(credentials);
       auth.setSession(response.user, response.access);
-      await router.replace(redirect);
+
+      const hasStaffOrAdmin =
+        response.user.roles.includes("ADMIN") || response.user.roles.includes("STAFF");
+      let targetRedirect = redirect;
+      if (hasStaffOrAdmin && (redirect === "/" || redirect === "/profile")) {
+        targetRedirect = "/admin";
+      }
+
+      await router.replace(targetRedirect);
     } finally {
       loginLoading.value = false;
     }

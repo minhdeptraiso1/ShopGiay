@@ -28,6 +28,8 @@ describe("ProfilePage", () => {
         full_name: "Demo User",
         is_active: true,
         date_joined: "2026-09-12T12:00:00Z",
+        roles: ["CUSTOMER"],
+        permissions: [],
       },
       "memory-access-token",
     );
@@ -36,6 +38,7 @@ describe("ProfilePage", () => {
       routes: [
         { path: "/", component: { template: "<div />" } },
         { path: "/profile", component: ProfilePage },
+        { path: "/profile/addresses", component: { template: "<div />" } },
       ],
     });
     await router.push("/profile");
