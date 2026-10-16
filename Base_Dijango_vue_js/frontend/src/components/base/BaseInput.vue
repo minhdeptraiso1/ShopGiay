@@ -7,13 +7,14 @@ interface Props {
   modelValue: string;
   id: string;
   name: string;
-  type?: "text" | "email" | "password" | "number" | "datetime-local" | "url";
+  type?: "text" | "email" | "password" | "number" | "date" | "datetime-local" | "url";
   autocomplete?: string;
   placeholder?: string;
   disabled?: boolean;
   readonly?: boolean;
   required?: boolean;
   invalid?: boolean;
+  clearable?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -24,6 +25,7 @@ const props = withDefaults(defineProps<Props>(), {
   readonly: false,
   required: false,
   invalid: false,
+  clearable: false,
 });
 const emit = defineEmits<{ "update:modelValue": [value: string]; blur: [event: FocusEvent] }>();
 const attrs = useAttrs();
@@ -53,10 +55,23 @@ const actualType = computed(() =>
           ? 'border-[var(--color-error)] focus:border-[var(--color-error)] focus:ring-[var(--color-error)]/20'
           : 'border-[var(--color-border)] hover:border-emerald-500/50',
         props.type === 'password' && 'pr-16',
+        props.clearable && props.modelValue && props.type !== 'password' && 'pr-11',
       ]"
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
       @blur="emit('blur', $event)"
     />
+    <button
+      v-if="props.clearable && props.modelValue && props.type !== 'password'"
+      type="button"
+      class="absolute inset-y-0 right-1.5 my-auto grid h-8 w-8 place-items-center rounded-lg text-slate-500 transition-colors hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)]"
+      aria-label="Xóa nội dung"
+      title="Xóa nội dung"
+      @click="emit('update:modelValue', '')"
+    >
+      <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" d="m7 7 10 10M17 7 7 17" />
+      </svg>
+    </button>
     <button
       v-if="props.type === 'password'"
       type="button"

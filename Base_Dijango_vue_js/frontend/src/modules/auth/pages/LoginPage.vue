@@ -57,14 +57,13 @@ const submit = handleSubmit(async (values) => {
     await login(values, safeRedirect.value);
   } catch (error) {
     const appError = toAppError(error);
-    let hasFieldErrors = false;
-    Object.entries(appError.fields).forEach(([field, message]) => {
-      if (field === "email" || field === "password") {
-        setFieldError(field, message);
-        hasFieldErrors = true;
-      }
+    const fieldErrors = Object.entries(appError.fields).filter(
+      ([field]) => field === "email" || field === "password",
+    );
+    fieldErrors.forEach(([field, message]) => {
+      setFieldError(field as "email" | "password", message);
     });
-    if (!hasFieldErrors) {
+    if (fieldErrors.length === 0) {
       formError.value = appError.message;
       toast.show(appError.message, "error");
     }
@@ -78,7 +77,6 @@ const submit = handleSubmit(async (values) => {
     <template #subtitle>Đăng nhập để quản lý tài khoản và địa chỉ nhận hàng.</template>
 
     <div class="space-y-4">
-
       <AppAlert v-if="logoutPending" variant="warning" title="Đang chờ thu hồi phiên">
         <span v-if="logoutError">{{ logoutError }}</span>
         <span v-else>Yêu cầu đăng xuất trước đó chưa hoàn tất.</span>
@@ -126,17 +124,28 @@ const submit = handleSubmit(async (values) => {
           />
         </FormField>
 
-        <BaseButton type="submit" block :loading="loginLoading" class="mt-2 text-sm font-black uppercase tracking-wider">
+        <BaseButton
+          type="submit"
+          block
+          :loading="loginLoading"
+          class="mt-2 text-sm font-black uppercase tracking-wider"
+        >
           Đăng nhập
         </BaseButton>
       </form>
       <div class="flex flex-wrap items-center justify-between gap-3 pt-2 text-sm">
-        <AppLink to="/forgot-password" class="text-xs font-semibold text-slate-400 hover:text-emerald-400 no-underline">
+        <AppLink
+          to="/forgot-password"
+          class="text-xs font-semibold text-slate-400 hover:text-emerald-400 no-underline"
+        >
           Quên mật khẩu?
         </AppLink>
         <span class="text-xs text-slate-400">
           Chưa có tài khoản?
-          <AppLink to="/register" class="ml-1 font-bold text-emerald-400 hover:text-emerald-300 no-underline">
+          <AppLink
+            to="/register"
+            class="ml-1 font-bold text-emerald-400 hover:text-emerald-300 no-underline"
+          >
             Đăng ký
           </AppLink>
         </span>

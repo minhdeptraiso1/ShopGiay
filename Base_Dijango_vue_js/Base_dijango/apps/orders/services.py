@@ -91,8 +91,8 @@ def _is_variant_purchasable(variant: ProductVariant) -> bool:
         and variant.product.status == Product.Status.PUBLISHED
         and variant.product.category.is_active
         and variant.product.brand.is_active
-        and variant.size.is_active
-        and variant.color.is_active
+        and (variant.size is None or variant.size.is_active)
+        and (variant.color is None or variant.color.is_active)
     )
 
 
@@ -373,6 +373,8 @@ def create_order(
             unit_price=line.unit_price,
             discount_total=line.discount_total,
             line_total=line.line_total,
+            unit_cost_snapshot=balance.average_unit_cost,
+            cost_total=balance.average_unit_cost * line.quantity,
             currency=line.currency,
         )
         created_order_items.append(order_item)
@@ -434,6 +436,24 @@ def create_order(
             if payment_method == Order.PaymentMethod.COD
             else "Khách hàng tạo đơn VNPay và giữ tồn kho"
         ),
+    )
+    from apps.notifications.models import Notification
+    from apps.notifications.services import create_notification, notify_staff
+
+    create_notification(
+        user_id=user.id,
+        kind=Notification.Kind.ORDER,
+        title="Đặt hàng thành công",
+        message=f"Đơn {order.number} đã được tạo và đang chờ xác nhận.",
+        link=f"/orders/{order.id}",
+        payload={"order_id": order.id, "status": order.status},
+    )
+    notify_staff(
+        kind=Notification.Kind.ORDER,
+        title="Có đơn hàng mới",
+        message=f"Đơn {order.number} vừa được tạo.",
+        link=f"/admin/orders?order={order.id}",
+        payload={"order_id": order.id, "status": order.status},
     )
     CartItem.objects.filter(pk__in=cart_item_ids, cart__user=user).delete()
     return order, True
@@ -530,14 +550,27 @@ def cancel_customer_order(*, user: User, order: Order) -> Order:
         actor=user,
         note="Khách hàng tự hủy đơn",
     )
+    from apps.notifications.models import Notification
+    from apps.notifications.services import create_notification
+
+    create_notification(
+        user_id=user.id,
+        kind=Notification.Kind.ORDER,
+        title="Đã hủy đơn hàng",
+        message=f"Đơn {order.number} đã được hủy theo yêu cầu của bạn.",
+        link=f"/orders/{order.id}",
+        payload={"order_id": order.id, "status": order.status},
+    )
     return order
 
 
 @transaction.atomic
 def confirm_customer_received(*, user: User, order_id: int) -> Order:
     order = Order.objects.select_for_update().get(pk=order_id, user=user)
-    if order.status != Order.Status.SHIPPED:
-        raise OrderReceiptConfirmationError("Chỉ có thể xác nhận khi đơn hàng đang giao.")
+    if order.status != Order.Status.DELIVERED:
+        raise OrderReceiptConfirmationError(
+            "Chỉ có thể xác nhận sau khi nhân viên đã xác nhận giao hàng."
+        )
     if (
         order.payment_method == Order.PaymentMethod.VNPAY
         and order.payment_status != Order.PaymentStatus.PAID
@@ -555,6 +588,17 @@ def confirm_customer_received(*, user: User, order_id: int) -> Order:
         to_status=Order.Status.COMPLETED,
         actor=user,
         note="Khách hàng xác nhận đã nhận hàng",
+    )
+    from apps.notifications.models import Notification
+    from apps.notifications.services import create_notification
+
+    create_notification(
+        user_id=user.id,
+        kind=Notification.Kind.ORDER,
+        title="Đơn hàng hoàn tất",
+        message=f"Bạn đã xác nhận nhận đơn {order.number}.",
+        link=f"/orders/{order.id}",
+        payload={"order_id": order.id, "status": order.status},
     )
     from apps.accounts.services import award_order_loyalty_points
 

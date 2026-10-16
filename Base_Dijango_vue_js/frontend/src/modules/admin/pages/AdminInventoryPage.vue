@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 
 import BaseButton from "@/components/base/BaseButton.vue";
+import BaseDialog from "@/components/base/BaseDialog.vue";
+import BaseInput from "@/components/base/BaseInput.vue";
+import BasePagination from "@/components/base/BasePagination.vue";
 import AppAlert from "@/components/feedback/AppAlert.vue";
 import AppLink from "@/components/navigation/AppLink.vue";
 import AdminLayout from "@/layouts/AdminLayout.vue";
@@ -10,9 +13,12 @@ import { toAppError } from "@/lib/http/errors";
 import { useAuth } from "@/modules/auth/composables/useAuth";
 import {
   adjustVariantInventory,
+  createInventoryReceipt,
+  downloadInventoryReceiptCsv,
   fetchAdminProducts,
-  fetchAdminVariants,
+  fetchAdminVariantsPage,
   fetchVariantStockMovements,
+  importInventoryReceipts,
   type AdminProduct,
   type AdminVariant,
   type StockMovementItem,
@@ -25,9 +31,22 @@ const products = ref<AdminProduct[]>([]);
 const loading = ref(true);
 const error = ref("");
 const isAdmin = computed(() => user.value?.roles.includes("ADMIN") ?? false);
+const page = ref(1);
+const count = ref(0);
+const search = ref("");
+const receiptOpen = ref(false);
+const receiptLoading = ref(false);
+const exportLoading = ref(false);
+const receipt = reactive({
+  variant_id: 0,
+  quantity: 1,
+  unit_cost: 0,
+  received_at: new Date().toISOString().slice(0, 10),
+  supplier: "",
+  note: "",
+});
 const productsWithoutVariants = computed(() => {
-  const productIdsWithVariants = new Set(variants.value.map((variant) => variant.product));
-  return products.value.filter((product) => !productIdsWithVariants.has(product.id));
+  return products.value.filter((product) => !product.has_variants);
 });
 
 function getProductName(productId: number): string {
@@ -56,14 +75,20 @@ async function loadVariants() {
   error.value = "";
   try {
     if (isAdmin.value) {
-      const [variantItems, productItems] = await Promise.all([
-        fetchAdminVariants(),
+      const [variantPage, productItems] = await Promise.all([
+        fetchAdminVariantsPage({ page: page.value, search: search.value || undefined }),
         fetchAdminProducts(),
       ]);
-      variants.value = variantItems;
+      variants.value = variantPage.results;
+      count.value = variantPage.count;
       products.value = productItems;
     } else {
-      variants.value = await fetchAdminVariants();
+      const variantPage = await fetchAdminVariantsPage({
+        page: page.value,
+        search: search.value || undefined,
+      });
+      variants.value = variantPage.results;
+      count.value = variantPage.count;
       products.value = [];
     }
   } catch (err) {
@@ -71,6 +96,82 @@ async function loadVariants() {
   } finally {
     loading.value = false;
   }
+}
+
+async function applyFilters(): Promise<void> {
+  page.value = 1;
+  await loadVariants();
+}
+
+async function changePage(value: number): Promise<void> {
+  page.value = value;
+  await loadVariants();
+}
+
+async function submitReceipt(): Promise<void> {
+  if (!receipt.variant_id || receipt.quantity < 1 || receipt.unit_cost < 0) return;
+  receiptLoading.value = true;
+  try {
+    await createInventoryReceipt({
+      received_at: receipt.received_at,
+      supplier: receipt.supplier,
+      note: receipt.note,
+      lines: [
+        {
+          variant_id: receipt.variant_id,
+          quantity: receipt.quantity,
+          unit_cost: receipt.unit_cost,
+        },
+      ],
+    });
+    receiptOpen.value = false;
+    toast.show("Đã nhập kho và cập nhật giá vốn bình quân.", "success");
+    await loadVariants();
+  } catch (err) {
+    toast.show(toAppError(err).message, "error");
+  } finally {
+    receiptLoading.value = false;
+  }
+}
+
+async function importCsv(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  receiptLoading.value = true;
+  try {
+    await importInventoryReceipts(file);
+    toast.show("Đã nhập các phiếu kho từ CSV.", "success");
+    receiptOpen.value = false;
+    await loadVariants();
+  } catch (err) {
+    toast.show(toAppError(err).message, "error");
+  } finally {
+    receiptLoading.value = false;
+    input.value = "";
+  }
+}
+
+async function downloadCsv(kind: "template" | "current"): Promise<void> {
+  exportLoading.value = true;
+  try {
+    const blob = await downloadInventoryReceiptCsv(kind);
+    const url = URL.createObjectURL(blob);
+    const anchor = globalThis.document.createElement("a");
+    anchor.href = url;
+    anchor.download = kind === "template" ? "mau-nhap-kho.csv" : "danh-sach-sku-nhap-kho.csv";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    toast.show(toAppError(err).message, "error");
+  } finally {
+    exportLoading.value = false;
+  }
+}
+
+function handleRealtime(event: Event): void {
+  const detail = (event as CustomEvent<{ payload?: { kind?: string } }>).detail;
+  if (detail.payload?.kind === "inventory") void loadVariants();
 }
 
 function openAdjustModal(variant: AdminVariant) {
@@ -138,14 +239,20 @@ function formatDate(dateStr: string) {
   });
 }
 
-onMounted(loadVariants);
+onMounted(() => {
+  globalThis.addEventListener("hai-duy:realtime", handleRealtime);
+  void loadVariants();
+});
+onBeforeUnmount(() => {
+  globalThis.removeEventListener("hai-duy:realtime", handleRealtime);
+});
 </script>
 
 <template>
   <AdminLayout>
     <div class="space-y-6">
       <!-- Page Header -->
-      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
+      <div class="space-y-5 border-b border-white/10 pb-5">
         <div>
           <p class="text-xs font-bold uppercase tracking-widest text-emerald-400">
             Kho Vận Hàng Hóa
@@ -158,14 +265,42 @@ onMounted(loadVariants);
             ký di biến động bất biến.
           </p>
         </div>
-        <div class="flex items-center gap-3">
+        <div
+          class="grid gap-3 xl:grid-cols-[minmax(22rem,1fr)_auto_auto_auto_auto] xl:items-center"
+        >
+          <BaseInput
+            v-model="search"
+            id="inventory-search"
+            name="inventory_search"
+            placeholder="Tìm mã SKU hoặc sản phẩm"
+            aria-label="Tìm trong kho"
+            clearable
+            @keyup.enter="applyFilters"
+          />
+          <BaseButton size="sm" @click="receiptOpen = true">Nhập kho</BaseButton>
+          <BaseButton
+            size="sm"
+            variant="secondary"
+            :loading="exportLoading"
+            @click="downloadCsv('template')"
+          >
+            Tải CSV mẫu
+          </BaseButton>
+          <BaseButton
+            size="sm"
+            variant="secondary"
+            :loading="exportLoading"
+            @click="downloadCsv('current')"
+          >
+            Xuất danh sách SKU
+          </BaseButton>
           <BaseButton
             size="sm"
             variant="ghost"
             class="rounded-xl border border-white/15 text-slate-300 hover:text-white"
-            @click="loadVariants"
+            @click="applyFilters"
           >
-            Làm mới danh sách
+            Lọc danh sách
           </BaseButton>
         </div>
       </div>
@@ -267,6 +402,7 @@ onMounted(loadVariants);
                 <th class="px-6 py-4">Mã SKU</th>
                 <th class="px-6 py-4">Sản phẩm</th>
                 <th class="px-6 py-4">Giá Niêm Yết</th>
+                <th class="px-6 py-4">Giá Vốn Bình Quân</th>
                 <th class="px-6 py-4 text-center">Tồn Kho Hiện Tại</th>
                 <th class="px-6 py-4">Ngưỡng Báo Động</th>
                 <th class="px-6 py-4 text-right">Thao Tác Kho</th>
@@ -287,6 +423,9 @@ onMounted(loadVariants);
                 </td>
                 <td class="px-6 py-4 font-mono font-semibold text-white">
                   {{ Number(v.price).toLocaleString("vi-VN") }} ₫
+                </td>
+                <td class="px-6 py-4 font-mono font-semibold text-sky-300">
+                  {{ Number(v.average_unit_cost).toLocaleString("vi-VN") }} ₫
                 </td>
                 <td class="px-6 py-4 text-center">
                   <span
@@ -328,8 +467,131 @@ onMounted(loadVariants);
             </tbody>
           </table>
         </div>
+        <div class="border-t border-white/10 p-4">
+          <BasePagination
+            :count="count"
+            :page="page"
+            :disabled="loading"
+            @update:page="changePage"
+          />
+        </div>
       </div>
     </div>
+
+    <BaseDialog
+      v-model="receiptOpen"
+      title="Nhập kho"
+      description="Ghi nhận số lượng và giá nhập để hệ thống tính giá vốn bình quân gia quyền."
+      :busy="receiptLoading"
+    >
+      <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submitReceipt">
+        <label class="grid gap-2 text-xs font-bold text-slate-300 sm:col-span-2">
+          SKU
+          <select
+            v-model.number="receipt.variant_id"
+            required
+            class="min-h-11 rounded-xl border border-white/15 bg-[#0b0e14] px-3 text-sm"
+          >
+            <option :value="0" disabled>Chọn SKU</option>
+            <option v-for="variant in variants" :key="variant.id" :value="variant.id">
+              {{ variant.sku }} · {{ getProductName(variant.product) }}
+            </option>
+          </select>
+        </label>
+        <label class="grid gap-2 text-xs font-bold text-slate-300">
+          Số lượng
+          <input
+            v-model.number="receipt.quantity"
+            name="quantity"
+            type="number"
+            min="1"
+            required
+            class="min-h-11 rounded-xl border border-white/15 bg-[#0b0e14] px-3 text-sm"
+          />
+        </label>
+        <label class="grid gap-2 text-xs font-bold text-slate-300">
+          Giá nhập/đơn vị
+          <input
+            v-model.number="receipt.unit_cost"
+            name="unit_cost"
+            type="number"
+            min="0"
+            required
+            class="min-h-11 rounded-xl border border-white/15 bg-[#0b0e14] px-3 text-sm"
+          />
+        </label>
+        <label class="grid gap-2 text-xs font-bold text-slate-300">
+          Ngày nhập
+          <BaseInput
+            v-model="receipt.received_at"
+            id="receipt-date"
+            name="received_at"
+            type="date"
+            required
+          />
+        </label>
+        <label class="grid gap-2 text-xs font-bold text-slate-300">
+          Nhà cung cấp
+          <BaseInput
+            v-model="receipt.supplier"
+            id="receipt-supplier"
+            name="supplier"
+            maxlength="180"
+          />
+        </label>
+        <label class="grid gap-2 text-xs font-bold text-slate-300 sm:col-span-2">
+          Ghi chú
+          <textarea
+            v-model="receipt.note"
+            class="min-h-20 rounded-xl border border-white/15 bg-[#0b0e14] p-3 text-sm"
+          />
+        </label>
+        <div class="sm:col-span-2 rounded-xl border border-dashed border-white/15 p-4">
+          <p class="text-sm font-bold">Hoặc nhập nhiều dòng từ CSV</p>
+          <p class="mt-1 text-xs text-slate-400">
+            Cột bắt buộc: Mã SKU, Số lượng, Giá nhập/đơn vị, Ngày nhập, Nhà cung cấp, Ghi chú.
+          </p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <BaseButton
+              size="sm"
+              variant="secondary"
+              :disabled="receiptLoading"
+              @click="downloadCsv('template')"
+            >
+              Tải file mẫu rỗng
+            </BaseButton>
+            <BaseButton
+              size="sm"
+              variant="secondary"
+              :disabled="receiptLoading"
+              @click="downloadCsv('current')"
+            >
+              Xuất SKU hiện tại
+            </BaseButton>
+          </div>
+          <input
+            id="inventory-csv-file"
+            class="sr-only"
+            type="file"
+            accept=".csv,text/csv"
+            :disabled="receiptLoading"
+            @change="importCsv"
+          />
+          <label
+            for="inventory-csv-file"
+            class="mt-3 inline-flex min-h-10 cursor-pointer items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-xs font-bold text-[var(--color-text)] transition hover:bg-[var(--color-primary-soft)]"
+          >
+            Chọn file CSV để nhập
+          </label>
+        </div>
+        <div class="flex justify-end gap-3 border-t border-white/10 pt-5 sm:col-span-2">
+          <BaseButton type="button" variant="secondary" @click="receiptOpen = false"
+            >Hủy</BaseButton
+          >
+          <BaseButton type="submit" :loading="receiptLoading">Ghi nhận nhập kho</BaseButton>
+        </div>
+      </form>
+    </BaseDialog>
 
     <!-- Modal: Stock Adjustment -->
     <Teleport to="body">

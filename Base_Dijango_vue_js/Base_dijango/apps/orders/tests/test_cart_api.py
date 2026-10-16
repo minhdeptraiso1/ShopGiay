@@ -4,8 +4,8 @@ from rest_framework.test import APIClient
 
 from apps.accounts.roles import BusinessRole
 from apps.accounts.tests.factories import UserFactory
-from apps.catalog.models import ProductEvent
-from apps.catalog.tests.factories import ProductVariantFactory
+from apps.catalog.models import Product, ProductEvent
+from apps.catalog.tests.factories import ProductFactory, ProductVariantFactory
 from apps.orders.models import CartItem
 
 pytestmark = pytest.mark.django_db
@@ -44,6 +44,27 @@ def test_customer_adds_updates_and_removes_cart_item():
     assert cart.data["subtotal"] == "4500000"
     assert deleted.status_code == 204
     assert not CartItem.objects.filter(pk=item_id).exists()
+
+
+def test_customer_adds_accessory_without_size_or_color_to_cart():
+    product = ProductFactory(product_type=Product.ProductType.CARE)
+    variant = ProductVariantFactory(
+        product=product,
+        size=None,
+        color=None,
+        option_label="Chai 250 ml",
+        inventory=5,
+    )
+    client, _ = customer_client()
+
+    response = client.post(
+        "/api/v1/cart/items/", {"variant": variant.id, "quantity": 1}, format="json"
+    )
+
+    assert response.status_code == 201
+    assert response.data["variant"]["option_label"] == "Chai 250 ml"
+    assert response.data["variant"]["size_label"] is None
+    assert response.data["variant"]["color_name"] is None
 
 
 def test_cart_rejects_quantity_above_stock_and_other_customer_item():

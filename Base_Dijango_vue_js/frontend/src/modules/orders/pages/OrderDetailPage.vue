@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import BaseButton from "@/components/base/BaseButton.vue";
@@ -79,6 +79,11 @@ function statusBadge(status: OrderStatus) {
       return {
         label: "Đang giao hàng",
         color: "border-purple-500/30 bg-purple-500/15 text-purple-400",
+      };
+    case "delivered":
+      return {
+        label: "Đã giao - chờ xác nhận",
+        color: "border-cyan-500/30 bg-cyan-500/15 text-cyan-400",
       };
     case "completed":
       return {
@@ -207,9 +212,18 @@ async function handleCancelOrder() {
   }
 }
 
+function handleRealtime(event: Event): void {
+  const detail = (event as CustomEvent<{ payload?: { kind?: string } }>).detail;
+  if (detail.payload?.kind === "order") void loadOrder();
+}
+
 onMounted(async () => {
+  globalThis.addEventListener("hai-duy:realtime", handleRealtime);
   await loadOrder();
   await handleVnpayReturn();
+});
+onBeforeUnmount(() => {
+  globalThis.removeEventListener("hai-duy:realtime", handleRealtime);
 });
 </script>
 
@@ -284,7 +298,7 @@ onMounted(async () => {
               </BaseButton>
             </div>
             <BaseButton
-              v-if="order.status === 'shipped'"
+              v-if="order.status === 'delivered'"
               size="sm"
               variant="primary"
               class="text-xs font-black tracking-wider uppercase"

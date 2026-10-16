@@ -1,4 +1,6 @@
 from collections.abc import Mapping
+from datetime import date
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from django.contrib.auth import get_user_model
@@ -10,6 +12,8 @@ from .models import (
     Category,
     Color,
     InventoryBalance,
+    InventoryReceipt,
+    InventoryReceiptLine,
     Product,
     ProductEvent,
     ProductImage,
@@ -207,6 +211,79 @@ def adjust_inventory(
         reason=reason,
         actor=actor,
     )
+
+
+@transaction.atomic
+def receive_inventory(
+    *,
+    lines: list[Mapping[str, Any]],
+    received_at: date,
+    supplier: str,
+    note: str,
+    actor: User,
+) -> InventoryReceipt:
+    """Nhập kho và cập nhật giá vốn bình quân trong cùng một transaction."""
+    variant_ids = sorted({int(line["variant_id"]) for line in lines})
+    variants = {
+        item.id: item
+        for item in ProductVariant.objects.select_for_update().filter(id__in=variant_ids)
+    }
+    if len(variants) != len(variant_ids):
+        raise ProductVariant.DoesNotExist("Có SKU không tồn tại.")
+    balances = {
+        item.variant_id: item
+        for item in InventoryBalance.objects.select_for_update().filter(variant_id__in=variant_ids)
+    }
+    receipt = InventoryReceipt.objects.create(
+        received_at=received_at,
+        supplier=supplier.strip(),
+        note=note.strip(),
+        actor=actor,
+    )
+    for line in lines:
+        variant_id = int(line["variant_id"])
+        quantity = int(line["quantity"])
+        unit_cost = Decimal(line["unit_cost"])
+        variant = variants[variant_id]
+        balance = balances.get(variant_id)
+        if balance is None:
+            balance = InventoryBalance.objects.create(variant=variant)
+            balances[variant_id] = balance
+        quantity_before = balance.quantity
+        quantity_after = quantity_before + quantity
+        inventory_value = balance.average_unit_cost * quantity_before + unit_cost * quantity
+        balance.quantity = quantity_after
+        balance.average_unit_cost = (inventory_value / quantity_after).quantize(
+            Decimal("1"), rounding=ROUND_HALF_UP
+        )
+        balance.save(update_fields=["quantity", "average_unit_cost", "updated_at"])
+        movement = StockMovement.objects.create(
+            variant=variant,
+            kind=StockMovement.Kind.RECEIPT,
+            delta=quantity,
+            quantity_before=quantity_before,
+            quantity_after=quantity_after,
+            reason=f"Nhập kho theo phiếu #{receipt.id}",
+            actor=actor,
+        )
+        InventoryReceiptLine.objects.create(
+            receipt=receipt,
+            variant=variant,
+            quantity=quantity,
+            unit_cost=unit_cost,
+            movement=movement,
+        )
+    from apps.notifications.models import Notification
+    from apps.notifications.services import notify_staff
+
+    notify_staff(
+        kind=Notification.Kind.INVENTORY,
+        title="Kho vừa được cập nhật",
+        message=f"Phiếu nhập #{receipt.id} đã thêm {len(lines)} SKU vào kho.",
+        link="/admin/inventory",
+        payload={"receipt_id": receipt.id},
+    )
+    return receipt
 
 
 def record_product_event(

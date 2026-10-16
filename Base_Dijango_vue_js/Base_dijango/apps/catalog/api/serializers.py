@@ -5,6 +5,8 @@ from apps.catalog.models import (
     Brand,
     Category,
     Color,
+    InventoryReceipt,
+    InventoryReceiptLine,
     Product,
     ProductEvent,
     ProductImage,
@@ -231,6 +233,8 @@ class ProductDetailSerializer(ProductListSerializer):
 
 
 class ProductAdminSerializer(serializers.ModelSerializer):
+    has_variants = serializers.SerializerMethodField()
+
     class Meta:
         model = Product
         fields = (
@@ -245,13 +249,24 @@ class ProductAdminSerializer(serializers.ModelSerializer):
             "published_at",
             "created_at",
             "updated_at",
+            "has_variants",
         )
         read_only_fields = ("id", "published_at", "created_at", "updated_at")
+
+    def get_has_variants(self, obj: Product) -> bool:
+        return obj.variants.exists()
 
 
 class ProductVariantAdminSerializer(serializers.ModelSerializer):
     inventory_quantity = serializers.IntegerField(
         source="inventory.quantity", read_only=True, default=0
+    )
+    average_unit_cost = serializers.DecimalField(
+        source="inventory.average_unit_cost",
+        max_digits=14,
+        decimal_places=0,
+        read_only=True,
+        default=0,
     )
 
     class Meta:
@@ -268,6 +283,7 @@ class ProductVariantAdminSerializer(serializers.ModelSerializer):
             "low_stock_threshold",
             "is_active",
             "inventory_quantity",
+            "average_unit_cost",
             "created_at",
             "updated_at",
         )
@@ -312,6 +328,64 @@ class StockMovementSerializer(serializers.ModelSerializer):
             "reason",
             "actor",
             "actor_email",
+            "created_at",
+        )
+        read_only_fields = fields
+
+
+class InventoryReceiptLineInputSerializer(serializers.Serializer):
+    variant_id = serializers.IntegerField(min_value=1)
+    quantity = serializers.IntegerField(min_value=1)
+    unit_cost = serializers.DecimalField(max_digits=14, decimal_places=0, min_value=0)
+
+
+class InventoryReceiptInputSerializer(serializers.Serializer):
+    received_at = serializers.DateField()
+    supplier = serializers.CharField(max_length=180, required=False, allow_blank=True, default="")
+    note = serializers.CharField(max_length=500, required=False, allow_blank=True, default="")
+    lines = InventoryReceiptLineInputSerializer(many=True, allow_empty=False, max_length=500)
+
+    def validate_lines(self, value: list[dict]) -> list[dict]:
+        ids = [row["variant_id"] for row in value]
+        if len(ids) != len(set(ids)):
+            raise serializers.ValidationError(
+                "Mỗi SKU chỉ được xuất hiện một lần trong phiếu nhập."
+            )
+        return value
+
+
+class InventoryReceiptLineOutputSerializer(serializers.ModelSerializer):
+    sku = serializers.CharField(source="variant.sku", read_only=True)
+    product_name = serializers.CharField(source="variant.product.name", read_only=True)
+
+    class Meta:
+        model = InventoryReceiptLine
+        fields = (
+            "id",
+            "variant",
+            "sku",
+            "product_name",
+            "quantity",
+            "unit_cost",
+            "movement",
+        )
+        read_only_fields = fields
+
+
+class InventoryReceiptOutputSerializer(serializers.ModelSerializer):
+    actor_email = serializers.EmailField(source="actor.email", read_only=True, allow_null=True)
+    lines = InventoryReceiptLineOutputSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = InventoryReceipt
+        fields = (
+            "id",
+            "received_at",
+            "supplier",
+            "note",
+            "actor",
+            "actor_email",
+            "lines",
             "created_at",
         )
         read_only_fields = fields

@@ -43,6 +43,7 @@ class Order(models.Model):
         CONFIRMED = "confirmed", "Đã xác nhận"
         PREPARING = "preparing", "Đang chuẩn bị"
         SHIPPED = "shipped", "Đang giao"
+        DELIVERED = "delivered", "Đã giao"
         COMPLETED = "completed", "Hoàn tất"
         CANCELLED = "cancelled", "Đã hủy"
 
@@ -109,7 +110,12 @@ class Order(models.Model):
             ),
             models.CheckConstraint(condition=Q(currency="VND"), name="orders_currency_vnd"),
         ]
-        indexes = [models.Index(fields=["user", "status", "-created_at"])]
+        indexes = [
+            models.Index(fields=["user", "status", "-created_at"]),
+            models.Index(
+                fields=["payment_status", "-updated_at"], name="orders_payment_updated_idx"
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.number
@@ -129,6 +135,8 @@ class OrderItem(models.Model):
     unit_price = models.DecimalField(max_digits=14, decimal_places=0)
     discount_total = models.DecimalField(max_digits=14, decimal_places=0, default=0)
     line_total = models.DecimalField(max_digits=14, decimal_places=0)
+    unit_cost_snapshot = models.DecimalField(max_digits=14, decimal_places=0, default=0)
+    cost_total = models.DecimalField(max_digits=14, decimal_places=0, default=0)
     currency = models.CharField(max_length=3, default="VND")
 
     class Meta:
@@ -137,7 +145,11 @@ class OrderItem(models.Model):
             models.UniqueConstraint(fields=["order", "variant"], name="orders_order_variant_uniq"),
             models.CheckConstraint(condition=Q(quantity__gt=0), name="orders_item_quantity_gt_0"),
             models.CheckConstraint(
-                condition=Q(unit_price__gte=0) & Q(discount_total__gte=0) & Q(line_total__gte=0),
+                condition=Q(unit_price__gte=0)
+                & Q(discount_total__gte=0)
+                & Q(line_total__gte=0)
+                & Q(unit_cost_snapshot__gte=0)
+                & Q(cost_total__gte=0),
                 name="orders_item_amounts_gte_0",
             ),
             models.CheckConstraint(
@@ -145,6 +157,10 @@ class OrderItem(models.Model):
                 name="orders_item_total_matches_components",
             ),
             models.CheckConstraint(condition=Q(currency="VND"), name="orders_item_currency_vnd"),
+            models.CheckConstraint(
+                condition=Q(cost_total=F("unit_cost_snapshot") * F("quantity")),
+                name="orders_item_cost_matches_snapshot",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -184,7 +200,7 @@ class Payment(models.Model):
     amount = models.DecimalField(max_digits=14, decimal_places=0)
     currency = models.CharField(max_length=3, default="VND")
     provider_transaction_no = models.CharField(max_length=64, blank=True, db_index=True)
-    paid_at = models.DateTimeField(null=True, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

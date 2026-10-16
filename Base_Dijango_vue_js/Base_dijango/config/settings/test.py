@@ -21,3 +21,4 @@ CACHES["default"]["KEY_PREFIX"] = f"django_base_test_{os.getpid()}"
 if env.bool("TEST_USE_LOCMEM_CACHE", default=False):
     CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 MIDDLEWARE = [item for item in MIDDLEWARE if item != "whitenoise.middleware.WhiteNoiseMiddleware"]
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}

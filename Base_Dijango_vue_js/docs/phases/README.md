@@ -33,8 +33,9 @@ phép. Trước khi bắt đầu luôn kiểm tra `git status --short` để kh�
 | 5 | [Khuyến mãi, yêu thích, đánh giá](phase-05.md) | `phase/05-engagement` | Phase 4 Done | Awaiting acceptance |
 | 6 | [Đổi hàng](phase-06.md) | `phase/06-exchanges` | Phase 5 Done | Planned |
 | 7 | [Recommendation System](phase-07.md) | `phase/07-recommendations` | Event từ Phase 2-6 | Awaiting acceptance |
-| 8 | [Báo cáo và vận hành](phase-08.md) | `phase/08-reporting-operations` | Phase 7 Done | Planned |
-| 9 | [Kiểm thử và release readiness](phase-09.md) | `phase/09-release-readiness` | Phase 1-8 Done | Planned |
+| 8 | [Báo cáo và vận hành](phase-08.md) | `phase/08-reporting-operations` | Phase 7 Done | Awaiting acceptance |
+| 9 | [Xác nhận giao và nhận hàng](phase-09.md) | `phase/09-delivery-confirmation` | Phase 8 Done | In progress |
+| 10 | [Kiểm thử và release readiness](phase-10.md) | `phase/10-release-readiness` | Phase 1-9 Done | Planned |
 
 ## Quy ước dùng chung
 

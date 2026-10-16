@@ -65,15 +65,14 @@ const submit = handleSubmit(async (values) => {
     await router.replace({ name: "login", query: { registered: "1" } });
   } catch (error) {
     const appError = toAppError(error);
-    let hasFieldErrors = false;
-    Object.entries(appError.fields).forEach(([field, message]) => {
+    const fieldErrors = Object.entries(appError.fields).flatMap(([field, message]) => {
       const formField = fieldMap[field];
-      if (formField) {
-        setFieldError(formField, message);
-        hasFieldErrors = true;
-      }
+      return formField ? [[formField, message] as const] : [];
     });
-    if (!hasFieldErrors) {
+    fieldErrors.forEach(([field, message]) => {
+      setFieldError(field, message);
+    });
+    if (fieldErrors.length === 0) {
       formError.value = appError.message;
       notifyToast(appError.message, "error");
     }
@@ -153,14 +152,22 @@ const submit = handleSubmit(async (values) => {
           @blur="blurPasswordConfirm"
         />
       </FormField>
-      <BaseButton type="submit" block :loading="loading" class="mt-2 text-sm font-black uppercase tracking-wider">
+      <BaseButton
+        type="submit"
+        block
+        :loading="loading"
+        class="mt-2 text-sm font-black uppercase tracking-wider"
+      >
         Đăng ký
       </BaseButton>
     </form>
 
     <p class="mt-6 text-center text-xs text-slate-400">
       Đã có tài khoản?
-      <AppLink to="/login" class="ml-1 font-bold text-emerald-400 hover:text-emerald-300 no-underline">
+      <AppLink
+        to="/login"
+        class="ml-1 font-bold text-emerald-400 hover:text-emerald-300 no-underline"
+      >
         Đăng nhập ngay
       </AppLink>
     </p>

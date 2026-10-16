@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/http/client";
+import type { PaginatedResponse } from "@/lib/http/pagination";
 import type { CreateExchangeInput, ExchangeRequest, ExchangeTransitionInput } from "./types";
 
 export async function fetchMyExchanges(): Promise<ExchangeRequest[]> {
@@ -28,10 +29,19 @@ export async function confirmReplacementReceived(id: number): Promise<ExchangeRe
   return response.data;
 }
 
-export async function fetchAdminExchanges(status?: string): Promise<ExchangeRequest[]> {
-  const response = await apiClient.get<ExchangeRequest[]>("/api/v1/admin/exchanges/", {
-    params: status ? { status } : undefined,
-  });
+export async function fetchAdminExchanges(params?: {
+  page?: number;
+  status?: string;
+  search?: string;
+  start_date?: string;
+  end_date?: string;
+}): Promise<PaginatedResponse<ExchangeRequest>> {
+  const response = await apiClient.get<PaginatedResponse<ExchangeRequest>>(
+    "/api/v1/admin/exchanges/",
+    {
+      params,
+    },
+  );
   return response.data;
 }
 

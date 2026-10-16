@@ -22,7 +22,8 @@ ALLOWED_TRANSITIONS = {
     Order.Status.PENDING_CONFIRMATION: {Order.Status.CONFIRMED, Order.Status.CANCELLED},
     Order.Status.CONFIRMED: {Order.Status.PREPARING, Order.Status.CANCELLED},
     Order.Status.PREPARING: {Order.Status.SHIPPED, Order.Status.CANCELLED},
-    Order.Status.SHIPPED: {Order.Status.COMPLETED},
+    Order.Status.SHIPPED: {Order.Status.DELIVERED},
+    Order.Status.DELIVERED: {Order.Status.COMPLETED},
     Order.Status.COMPLETED: set(),
     Order.Status.CANCELLED: set(),
 }
@@ -85,6 +86,17 @@ def transition_order(
         to_status=to_status,
         actor=actor,
         note=note,
+    )
+    from apps.notifications.models import Notification
+    from apps.notifications.services import create_notification
+
+    create_notification(
+        user_id=order.user_id,
+        kind=Notification.Kind.ORDER,
+        title="Cập nhật đơn hàng",
+        message=f"Đơn {order.number} đã chuyển sang {Order.Status(to_status).label.lower()}.",
+        link=f"/orders/{order.id}",
+        payload={"order_id": order.id, "status": to_status},
     )
     if to_status == Order.Status.COMPLETED:
         from apps.accounts.services import award_order_loyalty_points

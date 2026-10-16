@@ -12,7 +12,8 @@
 | Phase 5 | Awaiting acceptance | Đã code voucher, wishlist, review, banner và frontend; chờ nghiệm thu |
 | Phase 6 | Awaiting acceptance | Đã code exchange-only và VNPay return về đúng trang đơn; chờ nghiệm thu |
 | Phase 7 | Awaiting acceptance | Recommendation và catalog phụ kiện đã code; chờ Docker/PostgreSQL để nghiệm thu |
-| Phase 8-9 | Planned | Chưa được duyệt triển khai |
+| Phase 8 | Awaiting acceptance | Reporting, staff, audit và export đã code; chờ nghiệm thu |
+| Phase 9 | In progress | STAFF xác nhận đã giao, khách xác nhận đã nhận; chờ nghiệm thu realtime |
 
 ## Nhật ký
 
@@ -171,3 +172,40 @@
   dùng SQLite/LocMem: 87 backend test pass (1 PostgreSQL-only skip), 27 frontend test pass; Django/Ruff,
   migration drift, OpenAPI, targeted ESLint và production build pass. Sẽ chạy lại trên PostgreSQL khi môi
   trường sẵn sàng.
+
+### 2026-10-02 - Phase 8 reporting và vận hành
+
+- Thay dashboard mock bằng aggregate thật, phân quyền dữ liệu tài chính chỉ ADMIN và dùng timezone Việt Nam.
+- Thêm báo cáo sales, inventory, exchange và recommendation; một file Excel tổng hợp nhiều sheet.
+- Thêm quản trị STAFF không cho tự nâng quyền và audit log append-only cho thao tác quản trị quan trọng.
+- Thêm phiếu nhập kho thủ công/CSV, giá vốn bình quân, snapshot giá vốn lúc bán và lợi nhuận.
+- Thêm phân trang server-side 20 dòng/trang, bộ lọc quản trị và form nhân viên dạng popup.
+- Thêm notification đã đọc/chưa đọc và realtime cho đơn, đổi hàng, kho qua Django Channels + Redis.
+- Bổ sung trạng thái `delivered`, khách chỉ xác nhận nhận hàng sau khi dịch vụ giao hàng báo đã giao.
+- Thêm migration operations, màn báo cáo/nhân viên/audit và test boundary ngày, permission, export.
+- Ruff, Django check, migration drift và OpenAPI validation pass; frontend typecheck/lint/format,
+  27 test và production build pass. Backend SQLite đạt 95 test, bỏ qua 1 test khóa dòng chỉ dành cho
+  PostgreSQL. Backend PostgreSQL pytest/migrate vẫn đang chờ PostgreSQL local dùng đúng mật khẩu.
+- Bổ sung cột giá vốn bình quân trên màn kho và regression test cho flow dịch vụ giao hàng giả lập
+  `shipped -> delivered -> completed`; đồng thời sửa lỗi notification đổi hàng dùng nhầm thuộc tính
+  không tồn tại khiến API tạo yêu cầu trả về 500.
+
+### 2026-10-02 - Điều chỉnh Phase 9/10
+
+- Phase 9 đổi thành dịch vụ giao hàng giả lập: `shipped -> delivered`, sau đó khách xác nhận
+  `delivered -> completed`.
+- Release-readiness được dời nguyên tắc sang Phase 10.
+
+### 2026-10-15 - Phase 9 đơn giản hóa xác nhận giao hàng
+
+- Loại bỏ webhook và service vận chuyển giả lập để giảm cấu hình vận hành trong phạm vi đồ án.
+- STAFF/ADMIN dùng state transition hiện có để chuyển `shipped -> delivered`; history lưu đúng actor.
+- Khách vẫn xác nhận `delivered -> completed`, sau đó COD thành paid, cộng điểm và mở đánh giá.
+- Xóa endpoint, secret, model biên nhận và giao diện giả lập; bổ sung migration xóa bảng nếu đã từng áp dụng.
+
+### 2026-10-02 - Sửa phiên đăng nhập sau khi tải lại trang
+
+- Đổi tên cookie refresh từ tên dùng chung `refresh_token` sang `hai_duy_shop_refresh_token` để tránh
+  bị ứng dụng khác chạy trên cùng domain `localhost` ghi đè (cookie không phân biệt theo port).
+- Backend auth đạt 12/12 test; toàn bộ backend SQLite đạt 95 test và bỏ qua 1 test khóa dòng PostgreSQL.
+- Sau khi cập nhật cần khởi động lại backend và đăng nhập lại một lần để trình duyệt nhận cookie mới.

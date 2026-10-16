@@ -97,9 +97,9 @@ def test_staff_cancel_restores_cod_inventory():
     assert variant.inventory.quantity == 5
 
 
-def test_customer_confirms_shipped_order_and_can_only_confirm_own_order():
+def test_customer_confirms_delivered_order_and_can_only_confirm_own_order():
     order, customer, _ = create_cod_order()
-    Order.objects.filter(pk=order.pk).update(status=Order.Status.SHIPPED)
+    Order.objects.filter(pk=order.pk).update(status=Order.Status.DELIVERED)
     client = APIClient()
     client.force_authenticate(customer)
 
@@ -123,3 +123,39 @@ def test_customer_confirms_shipped_order_and_can_only_confirm_own_order():
     other_customer.groups.add(Group.objects.get(name=BusinessRole.CUSTOMER))
     client.force_authenticate(other_customer)
     assert client.post(f"/api/v1/orders/{order.id}/confirm-received/").status_code == 404
+
+
+def test_staff_marks_shipped_order_delivered_then_customer_confirms_received():
+    order, customer, _ = create_cod_order()
+    Order.objects.filter(pk=order.pk).update(status=Order.Status.SHIPPED)
+    order.refresh_from_db()
+    customer_client = APIClient()
+    customer_client.force_authenticate(customer)
+
+    assert customer_client.post(f"/api/v1/orders/{order.id}/confirm-received/").status_code == 409
+
+    staff = UserFactory()
+    staff.groups.add(Group.objects.get(name=BusinessRole.STAFF))
+    staff_client = APIClient()
+    staff_client.force_authenticate(staff)
+    delivered = staff_client.post(
+        f"/api/v1/admin/orders/{order.id}/transitions/",
+        {
+            "to_status": Order.Status.DELIVERED,
+            "expected_updated_at": order.updated_at.isoformat(),
+            "note": "Nhân viên xác nhận đã giao hàng",
+        },
+        format="json",
+    )
+
+    assert delivered.status_code == 200
+    assert delivered.data["status"] == Order.Status.DELIVERED
+    assert OrderStatusHistory.objects.filter(
+        order=order,
+        actor=staff,
+        from_status=Order.Status.SHIPPED,
+        to_status=Order.Status.DELIVERED,
+    ).exists()
+    completed = customer_client.post(f"/api/v1/orders/{order.id}/confirm-received/")
+    assert completed.status_code == 200
+    assert completed.data["status"] == Order.Status.COMPLETED

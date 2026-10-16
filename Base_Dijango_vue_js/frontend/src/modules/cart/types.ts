@@ -105,7 +105,13 @@ export interface OrderStatusHistoryItem {
 }
 
 export type OrderStatus =
-  "pending_confirmation" | "confirmed" | "preparing" | "shipped" | "completed" | "cancelled";
+  | "pending_confirmation"
+  | "confirmed"
+  | "preparing"
+  | "shipped"
+  | "delivered"
+  | "completed"
+  | "cancelled";
 
 export interface Order {
   id: number;

@@ -19,7 +19,9 @@ const styles = {
     :class="styles[props.variant]"
     :role="props.variant === 'error' ? 'alert' : 'status'"
   >
-    <p v-if="props.title" class="font-bold tracking-wide uppercase text-xs mb-1">{{ props.title }}</p>
+    <p v-if="props.title" class="font-bold tracking-wide uppercase text-xs mb-1">
+      {{ props.title }}
+    </p>
     <div><slot /></div>
   </div>
 </template>

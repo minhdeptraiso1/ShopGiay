@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, serializers, status, viewsets
+from rest_framework.filters import SearchFilter
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -214,6 +215,18 @@ class VoucherAdminViewSet(viewsets.ModelViewSet):
     queryset = Voucher.objects.prefetch_related("products", "categories").annotate(
         usage_count=Count("usages", filter=Q(usages__status__in=("reserved", "redeemed")))
     )
+    filter_backends = [SearchFilter]
+    search_fields = ("code", "name")
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.query_params.get("is_active") in {"true", "false"}:
+            queryset = queryset.filter(is_active=self.request.query_params["is_active"] == "true")
+        if start_date := self.request.query_params.get("start_date"):
+            queryset = queryset.filter(starts_at__date__gte=start_date)
+        if end_date := self.request.query_params.get("end_date"):
+            queryset = queryset.filter(ends_at__date__lte=end_date)
+        return queryset
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -239,6 +252,20 @@ class BannerAdminViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdmin]
     serializer_class = BannerSerializer
     queryset = Banner.objects.all()
+    filter_backends = [SearchFilter]
+    search_fields = ("title", "subtitle", "target_url")
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if position := self.request.query_params.get("position"):
+            queryset = queryset.filter(position=position)
+        if self.request.query_params.get("is_active") in {"true", "false"}:
+            queryset = queryset.filter(is_active=self.request.query_params["is_active"] == "true")
+        if start_date := self.request.query_params.get("start_date"):
+            queryset = queryset.filter(starts_at__date__gte=start_date)
+        if end_date := self.request.query_params.get("end_date"):
+            queryset = queryset.filter(ends_at__date__lte=end_date)
+        return queryset
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -267,7 +294,19 @@ class AdminReviewListView(ListAPIView):
     def get_queryset(self):
         queryset = list_admin_reviews()
         review_status = self.request.query_params.get("status")
-        return queryset.filter(status=review_status) if review_status else queryset
+        if review_status:
+            queryset = queryset.filter(status=review_status)
+        if search := self.request.query_params.get("search", "").strip():
+            queryset = queryset.filter(
+                Q(product__name__icontains=search)
+                | Q(user__email__icontains=search)
+                | Q(content__icontains=search)
+            )
+        if start_date := self.request.query_params.get("start_date"):
+            queryset = queryset.filter(created_at__date__gte=start_date)
+        if end_date := self.request.query_params.get("end_date"):
+            queryset = queryset.filter(created_at__date__lte=end_date)
+        return queryset
 
 
 class AdminReviewModerateView(APIView):

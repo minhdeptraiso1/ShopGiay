@@ -10,6 +10,9 @@ import AdminProductsPage from "@/modules/admin/pages/AdminProductsPage.vue";
 import AdminRecommendationsPage from "@/modules/admin/pages/AdminRecommendationsPage.vue";
 import AdminSizesPage from "@/modules/admin/pages/AdminSizesPage.vue";
 import AdminVariantsPage from "@/modules/admin/pages/AdminVariantsPage.vue";
+import AdminAuditLogsPage from "@/modules/operations/pages/AdminAuditLogsPage.vue";
+import AdminReportsPage from "@/modules/operations/pages/AdminReportsPage.vue";
+import AdminStaffPage from "@/modules/operations/pages/AdminStaffPage.vue";
 import ForgotPasswordPage from "@/modules/auth/pages/ForgotPasswordPage.vue";
 import LoginPage from "@/modules/auth/pages/LoginPage.vue";
 import RegisterPage from "@/modules/auth/pages/RegisterPage.vue";
@@ -155,6 +158,24 @@ export const router = createRouter({
       name: "admin-exchanges",
       component: AdminExchangesPage,
       meta: { requiresAuth: true, requiredRoles: ["STAFF", "ADMIN"] },
+    },
+    {
+      path: "/admin/reports",
+      name: "admin-reports",
+      component: AdminReportsPage,
+      meta: { requiresAuth: true, requiredRoles: ["STAFF", "ADMIN"] },
+    },
+    {
+      path: "/admin/staff",
+      name: "admin-staff",
+      component: AdminStaffPage,
+      meta: { requiresAuth: true, requiredRoles: ["ADMIN"] },
+    },
+    {
+      path: "/admin/audit-logs",
+      name: "admin-audit-logs",
+      component: AdminAuditLogsPage,
+      meta: { requiresAuth: true, requiredRoles: ["ADMIN"] },
     },
     { path: "/403", name: "forbidden", component: ForbiddenPage },
     { path: "/:pathMatch(.*)*", name: "not-found", component: NotFoundPage },

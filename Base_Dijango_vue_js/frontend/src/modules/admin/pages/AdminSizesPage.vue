@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 
 import BaseButton from "@/components/base/BaseButton.vue";
 import BaseInput from "@/components/base/BaseInput.vue";
+import BasePagination from "@/components/base/BasePagination.vue";
 import AppAlert from "@/components/feedback/AppAlert.vue";
 import AppPopup from "@/components/feedback/AppPopup.vue";
 import FormField from "@/components/form/FormField.vue";
@@ -13,7 +14,7 @@ import {
   createAdminSize,
   deleteAdminSize,
   fetchAdminBrands,
-  fetchAdminSizes,
+  fetchAdminSizesPage,
   updateAdminSize,
   type AdminBrand,
   type AdminSize,
@@ -26,6 +27,8 @@ const brands = ref<AdminBrand[]>([]);
 const loading = ref(true);
 const error = ref("");
 const selectedBrandFilter = ref<number | "">("");
+const page = ref(1);
+const count = ref(0);
 
 // Modal Create / Edit state
 const showModal = ref(false);
@@ -51,23 +54,29 @@ const showDeleteConfirm = ref(false);
 const sizeToDelete = ref<AdminSize | null>(null);
 const deleteLoading = ref(false);
 
-const filteredSizes = computed(() => {
-  if (!selectedBrandFilter.value) return sizes.value;
-  return sizes.value.filter((s) => s.brand === Number(selectedBrandFilter.value));
-});
+const filteredSizes = computed(() => sizes.value);
 
 async function loadData() {
   loading.value = true;
   error.value = "";
   try {
-    const [sizesRes, brandsRes] = await Promise.all([fetchAdminSizes(), fetchAdminBrands()]);
-    sizes.value = sizesRes;
+    const [sizesRes, brandsRes] = await Promise.all([
+      fetchAdminSizesPage(page.value, selectedBrandFilter.value || undefined),
+      fetchAdminBrands(),
+    ]);
+    sizes.value = sizesRes.results;
+    count.value = sizesRes.count;
     brands.value = brandsRes;
   } catch (err) {
     error.value = toAppError(err).message;
   } finally {
     loading.value = false;
   }
+}
+
+async function changePage(value: number): Promise<void> {
+  page.value = value;
+  await loadData();
 }
 
 function openCreateModal() {
@@ -185,6 +194,10 @@ function getBrandName(brandId: number): string {
 }
 
 onMounted(() => {
+  void loadData();
+});
+watch(selectedBrandFilter, () => {
+  page.value = 1;
   void loadData();
 });
 </script>
@@ -357,6 +370,9 @@ onMounted(() => {
             </tr>
           </tbody>
         </table>
+      </div>
+      <div class="border-t border-white/10 p-4">
+        <BasePagination :count="count" :page="page" :disabled="loading" @update:page="changePage" />
       </div>
     </div>
 

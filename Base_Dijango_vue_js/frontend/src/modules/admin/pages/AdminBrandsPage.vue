@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from "vue";
 
 import BaseButton from "@/components/base/BaseButton.vue";
 import BaseInput from "@/components/base/BaseInput.vue";
+import BasePagination from "@/components/base/BasePagination.vue";
 import AppAlert from "@/components/feedback/AppAlert.vue";
 import AppPopup from "@/components/feedback/AppPopup.vue";
 import FormField from "@/components/form/FormField.vue";
@@ -13,7 +14,7 @@ import { toSlug } from "../slug";
 import {
   createAdminBrand,
   deleteAdminBrand,
-  fetchAdminBrands,
+  fetchAdminBrandsPage,
   updateAdminBrand,
   type AdminBrand,
   type CreateBrandInput,
@@ -23,6 +24,8 @@ const toast = useToastStore();
 const brands = ref<AdminBrand[]>([]);
 const loading = ref(true);
 const error = ref("");
+const page = ref(1);
+const count = ref(0);
 
 // Modal Create / Edit state
 const showModal = ref(false);
@@ -52,12 +55,19 @@ async function loadBrands() {
   loading.value = true;
   error.value = "";
   try {
-    brands.value = await fetchAdminBrands();
+    const response = await fetchAdminBrandsPage(page.value);
+    brands.value = response.results;
+    count.value = response.count;
   } catch (err) {
     error.value = toAppError(err).message;
   } finally {
     loading.value = false;
   }
+}
+
+async function changePage(value: number): Promise<void> {
+  page.value = value;
+  await loadBrands();
 }
 
 function handleNameChange(name: string) {
@@ -323,6 +333,14 @@ onMounted(loadBrands);
               </tr>
             </tbody>
           </table>
+        </div>
+        <div class="border-t border-white/10 p-4">
+          <BasePagination
+            :count="count"
+            :page="page"
+            :disabled="loading"
+            @update:page="changePage"
+          />
         </div>
       </div>
     </div>

@@ -9,6 +9,7 @@ import AppLink from "@/components/navigation/AppLink.vue";
 import { useAuth } from "@/modules/auth/composables/useAuth";
 import { useCartStore } from "@/modules/cart/stores/cart";
 import { useWishlistStore } from "@/modules/engagement/stores/wishlist";
+import NotificationCenter from "@/modules/notifications/NotificationCenter.vue";
 
 const router = useRouter();
 const { user, isAuthenticated, logout, logoutLoading } = useAuth();
@@ -174,6 +175,9 @@ function handleSearch() {
               {{ cartStore.itemCount }}
             </span>
           </AppLink>
+
+          <!-- Realtime notifications for signed-in customers -->
+          <NotificationCenter v-if="isAuthenticated" />
 
           <!-- Theme Toggle Switch -->
           <ThemeToggle />

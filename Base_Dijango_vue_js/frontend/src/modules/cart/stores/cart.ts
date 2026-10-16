@@ -4,12 +4,7 @@ import { computed, ref } from "vue";
 import { useToastStore } from "@/app/stores/toast";
 import { toAppError } from "@/lib/http/errors";
 import { useAuthStore } from "@/modules/auth/stores/auth";
-import {
-  addToCart,
-  fetchCart,
-  removeCartItem,
-  updateCartItemQuantity,
-} from "../api";
+import { addToCart, fetchCart, removeCartItem, updateCartItemQuantity } from "../api";
 import type { Cart } from "../types";
 
 export const useCartStore = defineStore("cart", () => {

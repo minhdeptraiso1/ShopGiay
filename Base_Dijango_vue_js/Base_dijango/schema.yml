@@ -192,6 +192,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
           description: ''
+  /api/v1/admin/audit-logs/:
+    get:
+      operationId: api_v1_admin_audit_logs_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAuditLogOutputList'
+          description: ''
   /api/v1/admin/banners/:
     get:
       operationId: api_v1_admin_banners_list
@@ -202,6 +223,12 @@ paths:
         description: A page number within the paginated result set.
         schema:
           type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - api
       security:
@@ -348,6 +375,12 @@ paths:
         description: A page number within the paginated result set.
         schema:
           type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - Catalog administration
       security:
@@ -620,6 +653,12 @@ paths:
         description: A page number within the paginated result set.
         schema:
           type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - Catalog administration
       security:
@@ -892,6 +931,12 @@ paths:
         description: A page number within the paginated result set.
         schema:
           type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - Catalog administration
       security:
@@ -1154,6 +1199,34 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
           description: ''
+  /api/v1/admin/dashboard/:
+    get:
+      operationId: api_v1_admin_dashboard_retrieve
+      parameters:
+      - in: query
+        name: end_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: start_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: timezone
+        schema:
+          type: string
+          minLength: 1
+          default: Asia/Ho_Chi_Minh
+          maxLength: 64
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/v1/admin/exchanges/:
     get:
       operationId: api_v1_admin_exchanges_list
@@ -1233,6 +1306,97 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+          description: ''
+  /api/v1/admin/inventory/receipts/:
+    get:
+      operationId: api_v1_admin_inventory_receipts_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInventoryReceiptOutputList'
+          description: ''
+    post:
+      operationId: api_v1_admin_inventory_receipts_create
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryReceiptOutput'
+          description: ''
+  /api/v1/admin/inventory/receipts/export-current/:
+    get:
+      operationId: api_v1_admin_inventory_receipts_export_current_retrieve
+      tags:
+      - Inventory
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/admin/inventory/receipts/import/:
+    post:
+      operationId: api_v1_admin_inventory_receipts_import_create
+      tags:
+      - api
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+              - file
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryReceiptOutput'
+          description: ''
+  /api/v1/admin/inventory/receipts/template/:
+    get:
+      operationId: api_v1_admin_inventory_receipts_template_retrieve
+      tags:
+      - Inventory
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
           description: ''
   /api/v1/admin/inventory/variants/{variant_id}/adjustments/:
     post:
@@ -1340,6 +1504,7 @@ paths:
           - cancelled
           - completed
           - confirmed
+          - delivered
           - pending_confirmation
           - preparing
           - shipped
@@ -1476,6 +1641,12 @@ paths:
         description: A page number within the paginated result set.
         schema:
           type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - Catalog administration
       security:
@@ -1739,6 +1910,12 @@ paths:
         description: A page number within the paginated result set.
         schema:
           type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - Catalog administration
       security:
@@ -2001,6 +2178,297 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
           description: ''
+  /api/v1/admin/recommendations/metrics/:
+    get:
+      operationId: api_v1_admin_recommendations_metrics_retrieve
+      tags:
+      - Recommendations
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationMetrics'
+          description: ''
+  /api/v1/admin/reports/export/:
+    get:
+      operationId: api_v1_admin_reports_export_retrieve
+      parameters:
+      - in: query
+        name: end_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: start_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: timezone
+        schema:
+          type: string
+          minLength: 1
+          default: Asia/Ho_Chi_Minh
+          maxLength: 64
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/admin/reports/inventory/:
+    get:
+      operationId: api_v1_admin_reports_inventory_retrieve
+      parameters:
+      - in: query
+        name: end_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: start_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: timezone
+        schema:
+          type: string
+          minLength: 1
+          default: Asia/Ho_Chi_Minh
+          maxLength: 64
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/admin/reports/inventory/export/:
+    get:
+      operationId: api_v1_admin_reports_inventory_export_retrieve
+      parameters:
+      - in: query
+        name: end_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: start_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: timezone
+        schema:
+          type: string
+          minLength: 1
+          default: Asia/Ho_Chi_Minh
+          maxLength: 64
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/admin/reports/recommendations/:
+    get:
+      operationId: api_v1_admin_reports_recommendations_retrieve
+      parameters:
+      - in: query
+        name: end_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: start_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: timezone
+        schema:
+          type: string
+          minLength: 1
+          default: Asia/Ho_Chi_Minh
+          maxLength: 64
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/admin/reports/recommendations/export/:
+    get:
+      operationId: api_v1_admin_reports_recommendations_export_retrieve
+      parameters:
+      - in: query
+        name: end_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: start_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: timezone
+        schema:
+          type: string
+          minLength: 1
+          default: Asia/Ho_Chi_Minh
+          maxLength: 64
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/admin/reports/returns/:
+    get:
+      operationId: api_v1_admin_reports_returns_retrieve
+      parameters:
+      - in: query
+        name: end_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: start_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: timezone
+        schema:
+          type: string
+          minLength: 1
+          default: Asia/Ho_Chi_Minh
+          maxLength: 64
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/admin/reports/returns/export/:
+    get:
+      operationId: api_v1_admin_reports_returns_export_retrieve
+      parameters:
+      - in: query
+        name: end_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: start_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: timezone
+        schema:
+          type: string
+          minLength: 1
+          default: Asia/Ho_Chi_Minh
+          maxLength: 64
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/admin/reports/sales/:
+    get:
+      operationId: api_v1_admin_reports_sales_retrieve
+      parameters:
+      - in: query
+        name: end_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: start_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: timezone
+        schema:
+          type: string
+          minLength: 1
+          default: Asia/Ho_Chi_Minh
+          maxLength: 64
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/admin/reports/sales/export/:
+    get:
+      operationId: api_v1_admin_reports_sales_export_retrieve
+      parameters:
+      - in: query
+        name: end_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: start_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: timezone
+        schema:
+          type: string
+          minLength: 1
+          default: Asia/Ho_Chi_Minh
+          maxLength: 64
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: ''
   /api/v1/admin/reviews/:
     get:
       operationId: api_v1_admin_reviews_list
@@ -2064,6 +2532,12 @@ paths:
         description: A page number within the paginated result set.
         schema:
           type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - Catalog administration
       security:
@@ -2326,6 +2800,96 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
           description: ''
+  /api/v1/admin/staff/:
+    get:
+      operationId: api_v1_admin_staff_list
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaffOutput'
+          description: ''
+    post:
+      operationId: api_v1_admin_staff_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStaffInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateStaffInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateStaffInputRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffOutput'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+          description: ''
+  /api/v1/admin/staff/{staff_id}/:
+    patch:
+      operationId: api_v1_admin_staff_partial_update
+      parameters:
+      - in: path
+        name: staff_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateStaffInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateStaffInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUpdateStaffInputRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffOutput'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+          description: ''
   /api/v1/admin/variants/:
     get:
       operationId: api_v1_admin_variants_list
@@ -2336,6 +2900,12 @@ paths:
         description: A page number within the paginated result set.
         schema:
           type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - Catalog administration
       security:
@@ -2608,6 +3178,12 @@ paths:
         description: A page number within the paginated result set.
         schema:
           type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - api
       security:
@@ -3466,6 +4042,105 @@ paths:
               schema:
                 $ref: '#/components/schemas/ExchangeOutput'
           description: ''
+  /api/v1/exchanges/{exchange_id}/confirm-received/:
+    post:
+      operationId: api_v1_exchanges_confirm_received_create
+      parameters:
+      - in: path
+        name: exchange_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Exchanges
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeOutput'
+          description: ''
+  /api/v1/notifications/:
+    get:
+      operationId: api_v1_notifications_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationOutputList'
+          description: ''
+  /api/v1/notifications/{notification_id}/read/:
+    post:
+      operationId: api_v1_notifications_read_create
+      parameters:
+      - in: path
+        name: notification_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationOutput'
+          description: ''
+  /api/v1/notifications/read-all/:
+    post:
+      operationId: api_v1_notifications_read_all_create
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/notifications/summary/:
+    get:
+      operationId: api_v1_notifications_summary_retrieve
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationSummary'
+          description: ''
+  /api/v1/notifications/websocket-ticket/:
+    post:
+      operationId: api_v1_notifications_websocket_ticket_create
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebSocketTicket'
+          description: ''
   /api/v1/orders/:
     get:
       operationId: order_list
@@ -3924,6 +4599,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
           description: ''
+  /api/v1/products/{product_id}/recommendations/:
+    get:
+      operationId: api_v1_products_recommendations_retrieve
+      parameters:
+      - in: query
+        name: anonymous_id
+        schema:
+          type: string
+          format: uuid
+          nullable: true
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          maximum: 12
+          minimum: 1
+          default: 8
+      - in: path
+        name: product_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Recommendations
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+          description: ''
   /api/v1/products/{product_id}/reviews/:
     get:
       operationId: api_v1_products_reviews_list
@@ -4005,6 +4714,64 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
           description: ''
+  /api/v1/recommendations/personalized/:
+    get:
+      operationId: api_v1_recommendations_personalized_retrieve
+      parameters:
+      - in: query
+        name: anonymous_id
+        schema:
+          type: string
+          format: uuid
+          nullable: true
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          maximum: 12
+          minimum: 1
+          default: 8
+      tags:
+      - Recommendations
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+          description: ''
+  /api/v1/recommendations/popular/:
+    get:
+      operationId: api_v1_recommendations_popular_retrieve
+      parameters:
+      - in: query
+        name: anonymous_id
+        schema:
+          type: string
+          format: uuid
+          nullable: true
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          maximum: 12
+          minimum: 1
+          default: 8
+      tags:
+      - Recommendations
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+          description: ''
   /api/v1/reviews/{review_id}/:
     patch:
       operationId: api_v1_reviews_partial_update
@@ -4073,6 +4840,32 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Size'
+          description: ''
+  /api/v1/vouchers/eligible/:
+    post:
+      operationId: api_v1_vouchers_eligible_create
+      tags:
+      - Engagement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoucherValidateInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VoucherValidateInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VoucherValidateInputRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EligibleVoucherOutput'
           description: ''
   /api/v1/vouchers/validate/:
     post:
@@ -4193,22 +4986,6 @@ paths:
           description: ''
 components:
   schemas:
-    ActionEnum:
-      enum:
-      - approve
-      - reject
-      - receive
-      - inspect
-      - prepare
-      - complete
-      type: string
-      description: |-
-        * `approve` - approve
-        * `reject` - reject
-        * `receive` - receive
-        * `inspect` - inspect
-        * `prepare` - prepare
-        * `complete` - complete
     AddCartItemInputRequest:
       type: object
       properties:
@@ -4218,6 +4995,10 @@ components:
           type: integer
           maximum: 99
           minimum: 1
+        recommendation_context_id:
+          type: string
+          format: uuid
+          nullable: true
       required:
       - quantity
       - variant
@@ -4422,6 +5203,70 @@ components:
       - details
       - message
       - request_id
+    AuditLogOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        actor:
+          type: integer
+          readOnly: true
+          nullable: true
+        actor_email:
+          type: string
+          format: email
+          readOnly: true
+          nullable: true
+        action:
+          allOf:
+          - $ref: '#/components/schemas/AuditLogOutputActionEnum'
+          readOnly: true
+        entity_type:
+          type: string
+          readOnly: true
+        entity_id:
+          type: string
+          readOnly: true
+        summary:
+          type: string
+          readOnly: true
+        metadata:
+          readOnly: true
+        request_id:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action
+      - actor
+      - actor_email
+      - created_at
+      - entity_id
+      - entity_type
+      - id
+      - metadata
+      - request_id
+      - summary
+    AuditLogOutputActionEnum:
+      enum:
+      - created
+      - updated
+      - deactivated
+      - transitioned
+      - adjusted
+      - role_changed
+      type: string
+      description: |-
+        * `created` - Tạo mới
+        * `updated` - Cập nhật
+        * `deactivated` - Vô hiệu hóa
+        * `transitioned` - Chuyển trạng thái
+        * `adjusted` - Điều chỉnh
+        * `role_changed` - Đổi vai trò
     Banner:
       type: object
       properties:
@@ -4451,8 +5296,9 @@ components:
           format: date-time
         sort_order:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         is_active:
           type: boolean
         created_at:
@@ -4500,8 +5346,9 @@ components:
           format: date-time
         sort_order:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         is_active:
           type: boolean
       required:
@@ -4575,8 +5422,9 @@ components:
           readOnly: true
         quantity:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         line_total:
           type: string
           readOnly: true
@@ -4643,8 +5491,13 @@ components:
           type: string
         size_label:
           type: string
+          nullable: true
         color_name:
           type: string
+          nullable: true
+        option_label:
+          type: string
+          maxLength: 80
         price:
           type: string
           format: decimal
@@ -4867,6 +5720,26 @@ components:
           format: uri
           default: ''
           maxLength: 500
+    CreateStaffInputRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - full_name
+      - password
     CsrfTokenOutput:
       type: object
       properties:
@@ -4888,6 +5761,63 @@ components:
       description: |-
         * `percent` - Phần trăm
         * `fixed` - Số tiền cố định
+    EligibleVoucher:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        discount_type:
+          type: string
+        value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,0})?$
+        max_discount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,0})?$
+          nullable: true
+        min_order_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,0})?$
+        required_points:
+          type: integer
+        discount_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,0})?$
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,0})?$
+      required:
+      - code
+      - discount_total
+      - discount_type
+      - id
+      - max_discount
+      - min_order_value
+      - name
+      - required_points
+      - total
+      - value
+    EligibleVoucherOutput:
+      type: object
+      properties:
+        points_balance:
+          type: integer
+        vouchers:
+          type: array
+          items:
+            $ref: '#/components/schemas/EligibleVoucher'
+      required:
+      - points_balance
+      - vouchers
     ExchangeCreateInputRequest:
       type: object
       properties:
@@ -5023,21 +5953,26 @@ components:
         target_size:
           type: string
           readOnly: true
+          nullable: true
         target_color:
           type: string
           readOnly: true
+          nullable: true
         quantity:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         received_quantity:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         accepted_quantity:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         disposition:
           $ref: '#/components/schemas/ExchangeDispositionEnum'
         inspection_note:
@@ -5147,6 +6082,7 @@ components:
       - received
       - inspected
       - replacement_ready
+      - replacement_shipped
       - completed
       - rejected
       - cancelled
@@ -5157,14 +6093,31 @@ components:
         * `received` - Đã nhận hàng
         * `inspected` - Đã kiểm hàng
         * `replacement_ready` - Sẵn sàng giao đổi
+        * `replacement_shipped` - Đang giao hàng đổi
         * `completed` - Hoàn tất
         * `rejected` - Từ chối
         * `cancelled` - Đã hủy
+    ExchangeTransitionInputActionEnum:
+      enum:
+      - approve
+      - reject
+      - receive
+      - inspect
+      - prepare
+      - ship
+      type: string
+      description: |-
+        * `approve` - approve
+        * `reject` - reject
+        * `receive` - receive
+        * `inspect` - inspect
+        * `prepare` - prepare
+        * `ship` - ship
     ExchangeTransitionInputRequest:
       type: object
       properties:
         action:
-          $ref: '#/components/schemas/ActionEnum'
+          $ref: '#/components/schemas/ExchangeTransitionInputActionEnum'
         expected_updated_at:
           type: string
           format: date-time
@@ -5202,6 +6155,83 @@ components:
       - delta
       - kind
       - reason
+    InventoryReceiptLineOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        variant:
+          type: integer
+          readOnly: true
+        sku:
+          type: string
+          readOnly: true
+        product_name:
+          type: string
+          readOnly: true
+        quantity:
+          type: integer
+          readOnly: true
+        unit_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,0})?$
+          readOnly: true
+        movement:
+          type: integer
+          readOnly: true
+      required:
+      - id
+      - movement
+      - product_name
+      - quantity
+      - sku
+      - unit_cost
+      - variant
+    InventoryReceiptOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        received_at:
+          type: string
+          format: date
+          readOnly: true
+        supplier:
+          type: string
+          readOnly: true
+        note:
+          type: string
+          readOnly: true
+        actor:
+          type: integer
+          readOnly: true
+          nullable: true
+        actor_email:
+          type: string
+          format: email
+          readOnly: true
+          nullable: true
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryReceiptLineOutput'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - actor
+      - actor_email
+      - created_at
+      - id
+      - lines
+      - note
+      - received_at
+      - supplier
     Liveness:
       type: object
       properties:
@@ -5254,6 +6284,65 @@ components:
           readOnly: true
       required:
       - message
+    NotificationOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/NotificationOutputKindEnum'
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        message:
+          type: string
+          readOnly: true
+        link:
+          type: string
+          readOnly: true
+        payload:
+          readOnly: true
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - kind
+      - link
+      - message
+      - payload
+      - read_at
+      - title
+    NotificationOutputKindEnum:
+      enum:
+      - order
+      - exchange
+      - inventory
+      - system
+      type: string
+      description: |-
+        * `order` - Đơn hàng
+        * `exchange` - Đổi hàng
+        * `inventory` - Kho hàng
+        * `system` - Hệ thống
+    NotificationSummary:
+      type: object
+      properties:
+        unread_count:
+          type: integer
+          minimum: 0
+      required:
+      - unread_count
     OrderItemOutput:
       type: object
       properties:
@@ -5264,8 +6353,9 @@ components:
           type: integer
         quantity:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         product_name:
           type: string
           maxLength: 200
@@ -5408,6 +6498,7 @@ components:
       - confirmed
       - preparing
       - shipped
+      - delivered
       - completed
       - cancelled
       type: string
@@ -5416,6 +6507,7 @@ components:
         * `confirmed` - Đã xác nhận
         * `preparing` - Đang chuẩn bị
         * `shipped` - Đang giao
+        * `delivered` - Đã giao
         * `completed` - Hoàn tất
         * `cancelled` - Đã hủy
     OrderStatusHistory:
@@ -5487,6 +6579,29 @@ components:
       - next
       - previous
       - results
+    PaginatedAuditLogOutputList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLogOutput'
     PaginatedBannerList:
       type: object
       required:
@@ -5579,6 +6694,52 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Color'
+    PaginatedInventoryReceiptOutputList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryReceiptOutput'
+    PaginatedNotificationOutputList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationOutput'
     PaginatedOrderOutput:
       type: object
       properties:
@@ -5875,8 +7036,9 @@ components:
           format: date-time
         sort_order:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         is_active:
           type: boolean
     PatchedBrandRequest:
@@ -5949,6 +7111,8 @@ components:
           pattern: ^[-a-zA-Z0-9_]+$
         description:
           type: string
+        product_type:
+          $ref: '#/components/schemas/ProductTypeEnum'
         status:
           $ref: '#/components/schemas/ProductStatusEnum'
     PatchedProductImageRequest:
@@ -5971,8 +7135,9 @@ components:
           maxLength: 180
         sort_order:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         is_primary:
           type: boolean
     PatchedProductVariantAdminRequest:
@@ -5982,8 +7147,13 @@ components:
           type: integer
         size:
           type: integer
+          nullable: true
         color:
           type: integer
+          nullable: true
+        option_label:
+          type: string
+          maxLength: 80
         sku:
           type: string
           minLength: 1
@@ -5996,8 +7166,9 @@ components:
           $ref: '#/components/schemas/CurrencyEnum'
         low_stock_threshold:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         is_active:
           type: boolean
     PatchedReviewUpdateInputRequest:
@@ -6022,8 +7193,9 @@ components:
           maxLength: 40
         sort_order:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         is_active:
           type: boolean
     PatchedUpdateCartItemInputRequest:
@@ -6039,6 +7211,15 @@ components:
         full_name:
           type: string
           maxLength: 255
+    PatchedUpdateStaffInputRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        is_active:
+          type: boolean
     PatchedVoucherAdminRequest:
       type: object
       properties:
@@ -6065,6 +7246,11 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,14}(?:\.\d{0,0})?$
+        required_points:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
         starts_at:
           type: string
           format: date-time
@@ -6073,13 +7259,15 @@ components:
           format: date-time
         usage_limit:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
           nullable: true
         per_user_limit:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         products:
           type: array
           items:
@@ -6230,6 +7418,8 @@ components:
           pattern: ^[-a-zA-Z0-9_]+$
         description:
           type: string
+        product_type:
+          $ref: '#/components/schemas/ProductTypeEnum'
         status:
           $ref: '#/components/schemas/ProductStatusEnum'
         published_at:
@@ -6245,10 +7435,14 @@ components:
           type: string
           format: date-time
           readOnly: true
+        has_variants:
+          type: boolean
+          readOnly: true
       required:
       - brand
       - category
       - created_at
+      - has_variants
       - id
       - name
       - published_at
@@ -6272,6 +7466,8 @@ components:
           pattern: ^[-a-zA-Z0-9_]+$
         description:
           type: string
+        product_type:
+          $ref: '#/components/schemas/ProductTypeEnum'
         status:
           $ref: '#/components/schemas/ProductStatusEnum'
       required:
@@ -6300,6 +7496,8 @@ components:
           allOf:
           - $ref: '#/components/schemas/Brand'
           readOnly: true
+        product_type:
+          $ref: '#/components/schemas/ProductTypeEnum'
         primary_image:
           type: object
           additionalProperties: {}
@@ -6358,8 +7556,9 @@ components:
           format: uuid
         schema_version:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         event_type:
           $ref: '#/components/schemas/ProductEventTypeEnum'
         source:
@@ -6414,6 +7613,7 @@ components:
       - recommendation_click
       - wishlist_add
       - wishlist_remove
+      - purchase
       type: string
       description: |-
         * `view` - Xem sản phẩm
@@ -6422,6 +7622,7 @@ components:
         * `recommendation_click` - Nhấp gợi ý
         * `wishlist_add` - Thêm yêu thích
         * `wishlist_remove` - Bỏ yêu thích
+        * `purchase` - Mua hàng hoàn tất
     ProductImage:
       type: object
       properties:
@@ -6438,8 +7639,9 @@ components:
           maxLength: 180
         sort_order:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         is_primary:
           type: boolean
         created_at:
@@ -6471,8 +7673,9 @@ components:
           maxLength: 180
         sort_order:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         is_primary:
           type: boolean
       required:
@@ -6498,6 +7701,8 @@ components:
           allOf:
           - $ref: '#/components/schemas/Brand'
           readOnly: true
+        product_type:
+          $ref: '#/components/schemas/ProductTypeEnum'
         primary_image:
           type: object
           additionalProperties: {}
@@ -6543,6 +7748,16 @@ components:
         * `draft` - Nháp
         * `published` - Đang bán
         * `inactive` - Ngừng hoạt động
+    ProductTypeEnum:
+      enum:
+      - footwear
+      - accessory
+      - care
+      type: string
+      description: |-
+        * `footwear` - Giày dép
+        * `accessory` - Phụ kiện
+        * `care` - Chăm sóc giày
     ProductVariantAdmin:
       type: object
       properties:
@@ -6553,8 +7768,13 @@ components:
           type: integer
         size:
           type: integer
+          nullable: true
         color:
           type: integer
+          nullable: true
+        option_label:
+          type: string
+          maxLength: 80
         sku:
           type: string
           maxLength: 64
@@ -6566,14 +7786,21 @@ components:
           $ref: '#/components/schemas/CurrencyEnum'
         low_stock_threshold:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         is_active:
           type: boolean
         inventory_quantity:
           type: integer
           readOnly: true
           default: 0
+        average_unit_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,0})?$
+          readOnly: true
+          default: '0'
         created_at:
           type: string
           format: date-time
@@ -6583,13 +7810,12 @@ components:
           format: date-time
           readOnly: true
       required:
-      - color
+      - average_unit_cost
       - created_at
       - id
       - inventory_quantity
       - price
       - product
-      - size
       - sku
       - updated_at
     ProductVariantAdminRequest:
@@ -6599,8 +7825,13 @@ components:
           type: integer
         size:
           type: integer
+          nullable: true
         color:
           type: integer
+          nullable: true
+        option_label:
+          type: string
+          maxLength: 80
         sku:
           type: string
           minLength: 1
@@ -6613,15 +7844,14 @@ components:
           $ref: '#/components/schemas/CurrencyEnum'
         low_stock_threshold:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         is_active:
           type: boolean
       required:
-      - color
       - price
       - product
-      - size
       - sku
     QuoteLine:
       type: object
@@ -6691,6 +7921,62 @@ components:
       required:
       - database
       - redis
+    RecommendationMetrics:
+      type: object
+      properties:
+        days:
+          type: integer
+        requests:
+          type: integer
+        impressions:
+          type: integer
+        clicks:
+          type: integer
+        attributed_add_to_carts:
+          type: integer
+        attributed_purchases:
+          type: integer
+        ctr_percent:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        coverage_percent:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        requests_by_strategy:
+          type: object
+          additionalProperties:
+            type: integer
+      required:
+      - attributed_add_to_carts
+      - attributed_purchases
+      - clicks
+      - coverage_percent
+      - ctr_percent
+      - days
+      - impressions
+      - requests
+      - requests_by_strategy
+    RecommendationResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        strategy:
+          type: string
+        fallback_used:
+          type: boolean
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductList'
+      required:
+      - fallback_used
+      - request_id
+      - results
+      - strategy
     RefreshOutput:
       type: object
       properties:
@@ -6867,8 +8153,9 @@ components:
           maxLength: 40
         sort_order:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         is_active:
           type: boolean
       required:
@@ -6887,13 +8174,57 @@ components:
           maxLength: 40
         sort_order:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         is_active:
           type: boolean
       required:
       - brand
       - label
+    StaffOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+          title: Kích hoạt
+          description: Chỉ định xem người dùng này phải được coi là đang hoạt động.
+            Bạn nên bỏ chọn này thay vì xóa tài khoản.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Ngày tham gia
+        last_login:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Lần cuối đăng nhập
+        roles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+      required:
+      - date_joined
+      - email
+      - full_name
+      - id
+      - is_active
+      - last_login
+      - roles
     StockMovement:
       type: object
       properties:
@@ -6999,12 +8330,16 @@ components:
           items:
             type: string
           readOnly: true
+        loyalty_points:
+          type: integer
+          readOnly: true
       required:
       - date_joined
       - email
       - full_name
       - id
       - is_active
+      - loyalty_points
       - permissions
       - roles
     VnpayIpnOutput:
@@ -7071,6 +8406,11 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,14}(?:\.\d{0,0})?$
+        required_points:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
         starts_at:
           type: string
           format: date-time
@@ -7079,13 +8419,15 @@ components:
           format: date-time
         usage_limit:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
           nullable: true
         per_user_limit:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         products:
           type: array
           items:
@@ -7144,6 +8486,11 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,14}(?:\.\d{0,0})?$
+        required_points:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
         starts_at:
           type: string
           format: date-time
@@ -7152,13 +8499,15 @@ components:
           format: date-time
         usage_limit:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
           nullable: true
         per_user_limit:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
         products:
           type: array
           items:
@@ -7221,6 +8570,17 @@ components:
       - discount_total
       - subtotal
       - total
+    WebSocketTicket:
+      type: object
+      properties:
+        ticket:
+          type: string
+        expires_in:
+          type: integer
+          minimum: 1
+      required:
+      - expires_in
+      - ticket
     WishlistItem:
       type: object
       properties:

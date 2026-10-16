@@ -1,4 +1,5 @@
-from django.db.models import Prefetch, QuerySet
+from django.db.models import Prefetch, Q, QuerySet
+from django.utils import timezone
 
 from apps.catalog.models import ProductImage
 
@@ -38,10 +39,31 @@ def get_user_order(*, user_id: int, order_id: int) -> Order:
     )
 
 
-def list_admin_orders(*, status: str | None = None) -> QuerySet[Order]:
+def list_admin_orders(
+    *,
+    status: str | None = None,
+    search: str = "",
+    start_date: str = "",
+    end_date: str = "",
+    today: bool = False,
+) -> QuerySet[Order]:
     queryset = get_admin_order()
     if status in Order.Status.values:
         queryset = queryset.filter(status=status)
+    if search := search.strip():
+        queryset = queryset.filter(
+            Q(number__icontains=search)
+            | Q(user__email__icontains=search)
+            | Q(recipient_name__icontains=search)
+            | Q(phone_number__icontains=search)
+        )
+    if today:
+        queryset = queryset.filter(created_at__date=timezone.localdate())
+    else:
+        if start_date:
+            queryset = queryset.filter(created_at__date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(created_at__date__lte=end_date)
     return queryset
 
 

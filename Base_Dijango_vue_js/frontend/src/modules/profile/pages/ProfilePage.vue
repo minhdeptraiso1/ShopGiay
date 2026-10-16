@@ -29,8 +29,11 @@ const { handleSubmit: handleProfileSubmit } = useForm({
   validationSchema: profileSchema,
   initialValues: { fullName: user.value?.full_name || "" },
 });
-const { value: fullName, errorMessage: fullNameError, handleBlur: blurFullName } =
-  useField<string>("fullName");
+const {
+  value: fullName,
+  errorMessage: fullNameError,
+  handleBlur: blurFullName,
+} = useField<string>("fullName");
 
 const submitProfile = handleProfileSubmit(async (values) => {
   profileSubmitError.value = "";
@@ -68,17 +71,23 @@ const addressSubmitError = ref("");
 const addressToDelete = ref<Address | null>(null);
 const showDeleteConfirm = ref(false);
 
-const { handleSubmit: handleAddressSubmit, resetForm: resetAddressForm, setFieldError: setAddressFieldError } = useForm({
+const {
+  handleSubmit: handleAddressSubmit,
+  resetForm: resetAddressForm,
+  setFieldError: setAddressFieldError,
+} = useForm({
   validationSchema: addressSchema,
   initialValues: EMPTY_ADDRESS_FORM,
 });
 
-const { value: recipientName, errorMessage: recipientNameError } = useField<string>("recipientName");
+const { value: recipientName, errorMessage: recipientNameError } =
+  useField<string>("recipientName");
 const { value: phoneNumber, errorMessage: phoneNumberError } = useField<string>("phoneNumber");
 const { value: province, errorMessage: provinceError } = useField<string>("province");
 const { value: district, errorMessage: districtError } = useField<string>("district");
 const { value: ward, errorMessage: wardError } = useField<string>("ward");
-const { value: streetAddress, errorMessage: streetAddressError } = useField<string>("streetAddress");
+const { value: streetAddress, errorMessage: streetAddressError } =
+  useField<string>("streetAddress");
 
 function payloadFromValues(values: typeof EMPTY_ADDRESS_FORM): AddressPayload {
   return {
@@ -127,8 +136,10 @@ const submitAddress = handleAddressSubmit(async (values) => {
   try {
     await saveAddress(payloadFromValues(values), editingAddressId.value);
     toast.show(
-      editingAddressId.value ? "Cập nhật địa chỉ thành công." : "Thêm địa chỉ nhận hàng thành công.",
-      "success"
+      editingAddressId.value
+        ? "Cập nhật địa chỉ thành công."
+        : "Thêm địa chỉ nhận hàng thành công.",
+      "success",
     );
     cancelEditAddress();
   } catch (requestError) {
@@ -180,7 +191,7 @@ async function handleSetDefaultAddress(addr: Address) {
 }
 
 onMounted(() => {
-  loadAddresses();
+  void loadAddresses();
 });
 </script>
 
@@ -189,7 +200,9 @@ onMounted(() => {
     <div class="account-unified-page space-y-10">
       <!-- Top Title -->
       <header class="space-y-1.5 border-b border-white/10 pb-5">
-        <p class="text-xs font-bold uppercase tracking-widest text-emerald-400">Quản Lý Tài Khoản</p>
+        <p class="text-xs font-bold uppercase tracking-widest text-emerald-400">
+          Quản Lý Tài Khoản
+        </p>
         <h1 class="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white">
           Hồ Sơ & Sổ Địa Chỉ
         </h1>
@@ -200,12 +213,20 @@ onMounted(() => {
 
       <!-- Section 1: Profile Information -->
       <section aria-labelledby="profile-heading" class="space-y-4">
-        <h2 id="profile-heading" class="text-lg font-black uppercase tracking-tight text-white flex items-center gap-2">
-          <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-black">1</span>
+        <h2
+          id="profile-heading"
+          class="text-lg font-black uppercase tracking-tight text-white flex items-center gap-2"
+        >
+          <span
+            class="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-black"
+            >1</span
+          >
           Thông Tin Cá Nhân
         </h2>
 
-        <div class="rounded-3xl border border-white/10 bg-[#12151e]/85 backdrop-blur-xl p-6 sm:p-8 shadow-2xl">
+        <div
+          class="rounded-3xl border border-white/10 bg-[#12151e]/85 backdrop-blur-xl p-6 sm:p-8 shadow-2xl"
+        >
           <form class="space-y-6" novalidate @submit.prevent="submitProfile">
             <div class="flex items-center gap-4 border-b border-white/10 pb-6">
               <div
@@ -266,7 +287,13 @@ onMounted(() => {
               />
             </FormField>
 
-            <FormField v-slot="field" label="Họ và tên" name="fullName" :error="fullNameError" required>
+            <FormField
+              v-slot="field"
+              label="Họ và tên"
+              name="fullName"
+              :error="fullNameError"
+              required
+            >
               <BaseInput
                 v-model="fullName"
                 :id="field.id"
@@ -293,22 +320,47 @@ onMounted(() => {
       </section>
 
       <!-- Section 2: Addresses Management (Unified on the same page!) -->
-      <section id="addresses-section" aria-labelledby="addresses-heading" class="space-y-4 pt-4 border-t border-white/10">
-        <h2 id="addresses-heading" class="text-lg font-black uppercase tracking-tight text-white flex items-center gap-2">
-          <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-black">2</span>
+      <section
+        id="addresses-section"
+        aria-labelledby="addresses-heading"
+        class="space-y-4 pt-4 border-t border-white/10"
+      >
+        <h2
+          id="addresses-heading"
+          class="text-lg font-black uppercase tracking-tight text-white flex items-center gap-2"
+        >
+          <span
+            class="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-black"
+            >2</span
+          >
           Sổ Địa Chỉ Giao Hàng
         </h2>
 
         <div class="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)]">
           <!-- Left: Existing Addresses List -->
           <div class="space-y-4">
-            <AppAlert v-if="addressesLoadError" variant="error" title="Không thể tải danh sách địa chỉ">
+            <AppAlert
+              v-if="addressesLoadError"
+              variant="error"
+              title="Không thể tải danh sách địa chỉ"
+            >
               {{ addressesLoadError }}
             </AppAlert>
 
             <div v-if="addressesLoading" class="p-8 text-center text-slate-400">
-              <svg class="mx-auto h-6 w-6 animate-spin text-emerald-400 mb-2" viewBox="0 0 24 24" fill="none">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <svg
+                class="mx-auto h-6 w-6 animate-spin text-emerald-400 mb-2"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                />
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
               <span class="text-xs font-semibold">Đang tải địa chỉ…</span>
@@ -332,13 +384,15 @@ onMounted(() => {
                   'rounded-2xl border p-4 sm:p-5 transition-all backdrop-blur-xl shadow-lg',
                   addr.is_default
                     ? 'border-emerald-500/50 bg-[#121722]/90 shadow-[0_10px_25px_rgba(16,185,129,0.1)]'
-                    : 'border-white/10 bg-[#12151e]/85 hover:border-white/20'
+                    : 'border-white/10 bg-[#12151e]/85 hover:border-white/20',
                 ]"
               >
                 <div class="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div class="flex items-center gap-2">
-                      <h3 class="font-black text-white text-sm sm:text-base">{{ addr.recipient_name }}</h3>
+                      <h3 class="font-black text-white text-sm sm:text-base">
+                        {{ addr.recipient_name }}
+                      </h3>
                       <span
                         v-if="addr.is_default"
                         class="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-400"
@@ -346,9 +400,12 @@ onMounted(() => {
                         Mặc định
                       </span>
                     </div>
-                    <p class="text-xs font-semibold text-emerald-400/90 mt-0.5">{{ addr.phone_number }}</p>
+                    <p class="text-xs font-semibold text-emerald-400/90 mt-0.5">
+                      {{ addr.phone_number }}
+                    </p>
                     <address class="mt-1.5 text-xs text-slate-300 not-italic leading-relaxed">
-                      {{ addr.street_address }}, {{ addr.ward }}, {{ addr.district }}, {{ addr.province }}
+                      {{ addr.street_address }}, {{ addr.ward }}, {{ addr.district }},
+                      {{ addr.province }}
                     </address>
                   </div>
 

@@ -5,7 +5,9 @@ import AppLink from "@/components/navigation/AppLink.vue";
 </script>
 
 <template>
-  <main class="relative isolate flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#090a0f] px-4 py-12 text-white sm:px-6">
+  <main
+    class="relative isolate flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#090a0f] px-4 py-12 text-white sm:px-6"
+  >
     <!-- Floating Theme Toggle & Home Action -->
     <div class="absolute top-4 right-4 z-30 flex items-center gap-2 sm:gap-3">
       <ThemeToggle />
@@ -14,13 +16,21 @@ import AppLink from "@/components/navigation/AppLink.vue";
     <!-- Studio Ambient Radial Glow -->
     <div
       class="pointer-events-none absolute inset-0 opacity-40"
-      style="background: radial-gradient(circle at 50% 25%, rgba(16, 185, 129, 0.16), transparent 60%), radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.06), transparent 50%);"
+      style="
+        background:
+          radial-gradient(circle at 50% 25%, rgba(16, 185, 129, 0.16), transparent 60%),
+          radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.06), transparent 50%);
+      "
       aria-hidden="true"
     />
 
     <!-- Brand Header with Monogram Logo -->
     <header class="relative z-10 mb-8 flex flex-col items-center text-center">
-      <AppLink to="/" class="transition-transform duration-200 hover:scale-105 no-underline" aria-label="Trang chủ Hải Duy Shop">
+      <AppLink
+        to="/"
+        class="transition-transform duration-200 hover:scale-105 no-underline"
+        aria-label="Trang chủ Hải Duy Shop"
+      >
         <AppLogo />
       </AppLink>
     </header>

@@ -9,6 +9,7 @@ import AppAlert from "@/components/feedback/AppAlert.vue";
 import AppPopup from "@/components/feedback/AppPopup.vue";
 import AppLink from "@/components/navigation/AppLink.vue";
 import { useAuth } from "@/modules/auth/composables/useAuth";
+import NotificationCenter from "@/modules/notifications/NotificationCenter.vue";
 
 const route = useRoute();
 const { user, logout, logoutLoading, logoutError } = useAuth();
@@ -25,12 +26,11 @@ async function confirmLogout() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#090a0f] text-slate-100 relative selection:bg-emerald-500 selection:text-black">
+  <div
+    class="min-h-screen bg-[#090a0f] text-slate-100 relative selection:bg-emerald-500 selection:text-black"
+  >
     <!-- Ambient Studio Lighting -->
-    <div
-      aria-hidden="true"
-      class="pointer-events-none fixed inset-0 overflow-hidden"
-    >
+    <div aria-hidden="true" class="pointer-events-none fixed inset-0 overflow-hidden">
       <div
         class="absolute -top-40 left-1/2 -translate-x-1/2 w-[750px] h-[500px] rounded-full bg-gradient-to-b from-emerald-500/10 via-emerald-600/5 to-transparent blur-3xl"
       />
@@ -65,7 +65,7 @@ async function confirmLogout() {
                 'rounded-xl px-3 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider no-underline transition-all',
                 route.path === '/profile'
                   ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  : 'text-slate-300 hover:bg-white/10 hover:text-white',
               ]"
             >
               Hồ sơ
@@ -76,7 +76,7 @@ async function confirmLogout() {
                 'rounded-xl px-3 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider no-underline transition-all',
                 route.path.startsWith('/orders')
                   ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  : 'text-slate-300 hover:bg-white/10 hover:text-white',
               ]"
             >
               Đơn hàng
@@ -88,12 +88,22 @@ async function confirmLogout() {
                 'rounded-xl px-3 py-2 text-xs sm:text-sm font-bold uppercase tracking-wider no-underline transition-all inline-flex items-center gap-1.5',
                 route.path.startsWith('/admin')
                   ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-                  : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:text-emerald-300'
+                  : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:text-emerald-300',
               ]"
             >
               <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
               <span>Quản trị</span>
             </AppLink>
@@ -101,6 +111,7 @@ async function confirmLogout() {
 
           <!-- Theme Toggle -->
           <ThemeToggle />
+          <NotificationCenter />
 
           <!-- User Chip & Logout -->
           <div class="ml-1 sm:ml-2 flex items-center gap-2 border-l border-white/15 pl-2 sm:pl-3">
@@ -152,7 +163,10 @@ async function confirmLogout() {
     </div>
 
     <!-- Main Content Slot -->
-    <main id="account-content" class="relative z-10 mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+    <main
+      id="account-content"
+      class="relative z-10 mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
+    >
       <slot :user="user" />
     </main>
 
