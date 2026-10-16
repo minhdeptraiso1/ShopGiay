@@ -5,7 +5,8 @@ DRF 3.16 hỗ trợ Django 5.2. Dependency chính và phụ được khóa trong
 
 ## Công nghệ
 
-Django 5.2, Django REST Framework 3.16, PostgreSQL 18, Redis 8, Simple JWT 5.5,
+Django 5.2, Django REST Framework 3.16, PostgreSQL 18, Redis 8, Django Channels,
+channels-redis, OpenPyXL, Simple JWT 5.5,
 drf-spectacular 0.29, django-environ, django-cors-headers, django-redis, Gunicorn và WhiteNoise.
 Test dùng pytest/pytest-django/factory-boy; chất lượng mã dùng Ruff.
 
@@ -234,6 +235,9 @@ Nhập email và mật khẩu theo hướng dẫn trên terminal.
 
 Không đóng terminal đang chạy server. Nhấn `Ctrl+C` khi muốn dừng.
 
+`runserver` phục vụ cả HTTP và WebSocket trong local. Redis trong `REDIS_URL` phải hoạt động để phát
+notification realtime; nếu Redis tạm ngừng, dữ liệu nghiệp vụ vẫn được lưu và người dùng có thể tải lại.
+
 #### Cấu hình email reset mật khẩu
 
 `EMAIL_BACKEND=auto` tự chọn cách gửi theo cấu hình trong `.env`:
@@ -335,6 +339,22 @@ tạo thêm tài khoản quản trị.
 Schema OpenAPI: <http://127.0.0.1:8000/api/schema/>. Tài liệu API mở mặc định ở local và tắt mặc định
 ở production.
 
+### Báo cáo và vận hành Phase 8
+
+Sau khi cập nhật source, chạy migration để tạo bảng audit:
+
+```powershell
+.\.tools\Scripts\uv.exe run python manage.py migrate
+```
+
+Dashboard và báo cáo nằm dưới `/api/v1/admin/dashboard/` và `/api/v1/admin/reports/`. STAFF xem báo cáo
+vận hành kho/đổi hàng/recommendation; chỉ ADMIN xem doanh thu, quản lý `/api/v1/admin/staff/` và đọc
+`/api/v1/admin/audit-logs/`. Audit giữ mặc định 730 ngày. Kiểm tra trước khi dọn dữ liệu quá hạn:
+
+```powershell
+.\.tools\Scripts\uv.exe run python manage.py purge_audit_logs --dry-run
+```
+
 ## Chạy Docker
 
 ```powershell
@@ -354,7 +374,8 @@ Admin hoạt động; media lớn nên đưa ra object storage/reverse proxy ở
 Frontend Vue nằm trong thư mục `frontend`. Xem [hướng dẫn frontend](../frontend/README.md) để chạy bằng
 VS Code/CMD, kiểm thử và hiểu cấu trúc source.
 
-Luồng auth không trả refresh token trong JSON. Backend đặt refresh token vào cookie `HttpOnly`; frontend
+Luồng auth không trả refresh token trong JSON. Backend đặt refresh token vào cookie `HttpOnly` riêng của
+dự án (`hai_duy_shop_refresh_token`) để tránh bị ứng dụng khác trên `localhost` ghi đè; frontend
 giữ access token trong memory và gửi CSRF header cho login/refresh/logout. Có thể thử nhanh qua giao diện:
 
 ```cmd

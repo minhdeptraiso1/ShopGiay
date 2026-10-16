@@ -111,7 +111,7 @@ onMounted(loadSettings);
               { number: '04', title: 'Sản phẩm', text: 'Tạo nội dung rồi sinh biến thể' },
             ]"
             :key="step.number"
-            class="rounded-xl border border-white/10 bg-[#0c0e17]/70 p-4"
+            class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
           >
             <span class="text-xs font-black text-emerald-400">{{ step.number }}</span>
             <strong class="mt-2 block text-sm text-white">{{ step.title }}</strong>
@@ -171,7 +171,7 @@ onMounted(loadSettings);
             <div
               v-for="brand in activeBrands.slice(0, 6)"
               :key="brand.id"
-              class="rounded-xl border border-white/8 bg-white/[0.025] p-3"
+              class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-subtle)] p-3"
             >
               <strong class="block text-sm text-white">{{ brand.name }}</strong
               ><span class="mt-1 block text-[11px] text-slate-500"
@@ -242,7 +242,7 @@ onMounted(loadSettings);
             <div
               v-for="color in activeColors.slice(0, 9)"
               :key="color.id"
-              class="flex items-center gap-2 rounded-xl border border-white/8 bg-white/[0.025] p-2.5"
+              class="flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-subtle)] p-2.5"
             >
               <span
                 class="h-5 w-5 rounded-full border border-white/20"

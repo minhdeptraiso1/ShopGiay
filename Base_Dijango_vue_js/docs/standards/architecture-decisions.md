@@ -141,6 +141,31 @@ Không cần tạo quyết định cho chi tiết nhỏ; không sửa chuẩn ch
 - **Trạng thái:** hiện hành. Chỉ triển khai collaborative/hybrid khi dữ liệu production vượt gate và kết
   quả Recall@K/NDCG@K/coverage tốt hơn baseline với latency chấp nhận được.
 
+## ADR-016 — KPI vận hành, timezone và audit Phase 8
+
+- **Lựa chọn:** doanh thu ghi nhận từ order `PAID` không hủy, tại `Payment.paid_at` với VNPay hoặc thời
+  điểm hoàn tất với COD; báo cáo mặc định theo `Asia/Ho_Chi_Minh`, kỳ hiện tại so với kỳ liền trước. CSV
+  dùng UTF-8 BOM và vô hiệu ô bắt đầu bằng `=`, `+`, `-`, `@`, tab hoặc carriage return. Audit log chỉ
+  thêm mới trong thời hạn lưu mặc định 730 ngày, sau đó command vận hành mới được phép dọn theo policy.
+- **Lý do:** tránh tính doanh thu ở client, giữ ranh giới ngày Việt Nam nhất quán, xuất file dùng được với
+  Excel mà không tạo formula injection và có thời hạn lưu audit rõ ràng.
+- **Phạm vi:** dashboard, reporting, staff/audit operations Phase 8.
+- **Trạng thái:** hiện hành. Aggregate đang dùng index/query ORM trực tiếp; chỉ thêm summary table/job khi
+  dữ liệu production chứng minh truy vấn vượt ngân sách latency.
+
+## ADR-017 — Giá vốn snapshot, notification bền vững và realtime
+
+- **Lựa chọn:** phiếu nhập cập nhật giá vốn bình quân gia quyền của SKU; order item lưu snapshot đơn giá
+  vốn và tổng giá vốn tại lúc bán. Lợi nhuận hiện tại bằng doanh thu thuần trừ giá vốn, chưa tính phí giao
+  hàng/VNPay. Notification lưu PostgreSQL, trạng thái đã đọc độc lập và Django Channels + Redis chỉ làm
+  kênh phát realtime; UI luôn có thể tải lại từ API. WebSocket xác thực bằng ticket dùng một lần, không
+  đưa access token vào URL.
+- **Lý do:** lịch sử lợi nhuận không được đổi theo lần nhập hàng sau; mất kết nối Redis không được làm mất
+  notification hay dữ liệu nghiệp vụ; ticket ngắn hạn giảm rò rỉ credential qua log/proxy.
+- **Phạm vi:** catalog inventory, order snapshot, reporting, notification và UI Phase 8-9.
+- **Trạng thái:** hiện hành. Chi phí lịch sử trước migration mặc định bằng 0 vì không có dữ liệu giá nhập
+  đáng tin để backfill; cần ghi nhận phiếu nhập trước khi đối soát lợi nhuận thực tế.
+
 ## Nợ kỹ thuật có kiểm soát
 
 - Root ban đầu chưa là Git repository; người duy trì cần chạy quy trình init/push trong README.

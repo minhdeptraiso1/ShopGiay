@@ -7,8 +7,10 @@ import BaseButton from "@/components/base/BaseButton.vue";
 const toast = useToastStore();
 const { message, variant } = storeToRefs(toast);
 const styles = {
-  success: "border-emerald-500/30 bg-[#12151e]/95 text-emerald-300 shadow-[0_10px_30px_rgba(16,185,129,0.2)]",
-  error: "border-rose-500/30 bg-[#12151e]/95 text-rose-300 shadow-[0_10px_30px_rgba(244,63,94,0.2)]",
+  success:
+    "border-emerald-500/30 bg-[#12151e]/95 text-emerald-300 shadow-[0_10px_30px_rgba(16,185,129,0.2)]",
+  error:
+    "border-rose-500/30 bg-[#12151e]/95 text-rose-300 shadow-[0_10px_30px_rgba(244,63,94,0.2)]",
   info: "border-sky-500/30 bg-[#12151e]/95 text-sky-300 shadow-[0_10px_30px_rgba(56,189,248,0.2)]",
 };
 </script>
@@ -23,7 +25,13 @@ const styles = {
       aria-live="polite"
     >
       <p class="text-sm font-semibold">{{ message }}</p>
-      <BaseButton size="sm" variant="ghost" aria-label="Đóng thông báo" class="text-xs uppercase font-bold" @click="toast.dismiss">
+      <BaseButton
+        size="sm"
+        variant="ghost"
+        aria-label="Đóng thông báo"
+        class="text-xs uppercase font-bold"
+        @click="toast.dismiss"
+      >
         Đóng
       </BaseButton>
     </div>

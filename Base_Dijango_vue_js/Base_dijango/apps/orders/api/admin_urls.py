@@ -1,6 +1,10 @@
 from django.urls import path
 
-from .admin_views import AdminOrderDetailView, AdminOrderListView, AdminOrderTransitionView
+from .admin_views import (
+    AdminOrderDetailView,
+    AdminOrderListView,
+    AdminOrderTransitionView,
+)
 
 urlpatterns = [
     path("orders/", AdminOrderListView.as_view(), name="admin-order-list"),

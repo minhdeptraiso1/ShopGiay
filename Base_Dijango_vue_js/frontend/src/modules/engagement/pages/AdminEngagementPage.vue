@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 
 import { useToastStore } from "@/app/stores/toast";
 import BaseButton from "@/components/base/BaseButton.vue";
 import BaseInput from "@/components/base/BaseInput.vue";
+import BasePagination from "@/components/base/BasePagination.vue";
 import BaseTextarea from "@/components/base/BaseTextarea.vue";
 import AppAlert from "@/components/feedback/AppAlert.vue";
 import FormField from "@/components/form/FormField.vue";
@@ -18,8 +19,10 @@ import {
   deactivateAdminBanner,
   deactivateAdminVoucher,
   fetchAdminBanners,
-  fetchAdminReviews,
+  fetchAdminBannersPage,
+  fetchAdminReviewsPage,
   fetchAdminVouchers,
+  fetchAdminVouchersPage,
   moderateAdminReview,
   updateAdminBanner,
   updateAdminVoucher,
@@ -74,6 +77,8 @@ const editingVoucherId = ref<number | null>(null);
 const editingBannerId = ref<number | null>(null);
 const voucherView = ref<ManagerView>("list");
 const bannerView = ref<ManagerView>("list");
+const page = ref(1);
+const count = ref(0);
 
 const bannerPositionLabels: Record<Banner["position"], string> = {
   home_hero: "Hero trang chủ",
@@ -231,28 +236,45 @@ async function load(): Promise<void> {
   loading.value = true;
   error.value = "";
   try {
-    const reviewPromise = fetchAdminReviews();
+    const reviewPromise = fetchAdminReviewsPage(
+      activeTab.value === "reviews" ? page.value : 1,
+      reviewFilter.value || undefined,
+    );
     if (isAdmin.value) {
       const [reviewData, voucherData, bannerData, categoryData, productData] = await Promise.all([
         reviewPromise,
-        fetchAdminVouchers(),
-        fetchAdminBanners(),
+        fetchAdminVouchersPage(activeTab.value === "vouchers" ? page.value : 1),
+        fetchAdminBannersPage(activeTab.value === "banners" ? page.value : 1),
         fetchCategories(),
         fetchProducts({ page: 1 }),
       ]);
-      reviews.value = reviewData;
-      vouchers.value = voucherData;
-      banners.value = bannerData;
+      reviews.value = reviewData.results;
+      vouchers.value = voucherData.results;
+      banners.value = bannerData.results;
+      const activePage =
+        activeTab.value === "reviews"
+          ? reviewData
+          : activeTab.value === "vouchers"
+            ? voucherData
+            : bannerData;
+      count.value = activePage.count;
       categories.value = categoryData;
       products.value = productData.results;
     } else {
-      reviews.value = await reviewPromise;
+      const reviewData = await reviewPromise;
+      reviews.value = reviewData.results;
+      count.value = reviewData.count;
     }
   } catch (err) {
     error.value = toAppError(err).message;
   } finally {
     loading.value = false;
   }
+}
+
+async function changePage(value: number): Promise<void> {
+  page.value = value;
+  await load();
 }
 
 async function submitVoucher(): Promise<void> {
@@ -349,6 +371,10 @@ async function moderate(review: Review, status: "approved" | "rejected"): Promis
 }
 
 onMounted(() => void load());
+watch([activeTab, reviewFilter], () => {
+  page.value = 1;
+  void load();
+});
 </script>
 
 <template>
@@ -929,6 +955,17 @@ onMounted(() => void load());
           </aside>
         </div>
       </section>
+      <BasePagination
+        v-if="
+          activeTab === 'reviews' ||
+          (activeTab === 'vouchers' && voucherView === 'list') ||
+          (activeTab === 'banners' && bannerView === 'list')
+        "
+        :count="count"
+        :page="page"
+        :disabled="loading"
+        @update:page="changePage"
+      />
     </div>
   </AdminLayout>
 </template>

@@ -182,11 +182,19 @@ class InventoryBalance(models.Model):
         ProductVariant, on_delete=models.PROTECT, related_name="inventory"
     )
     quantity = models.PositiveIntegerField(default=0)
+    average_unit_cost = models.DecimalField(
+        max_digits=14, decimal_places=0, default=0, validators=[MinValueValidator(0)]
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         constraints = [
-            models.CheckConstraint(condition=Q(quantity__gte=0), name="catalog_inventory_qty_gte_0")
+            models.CheckConstraint(
+                condition=Q(quantity__gte=0), name="catalog_inventory_qty_gte_0"
+            ),
+            models.CheckConstraint(
+                condition=Q(average_unit_cost__gte=0), name="catalog_inventory_cost_gte_0"
+            ),
         ]
 
     def __str__(self) -> str:
@@ -242,6 +250,46 @@ class StockMovement(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValidationError("Stock movement là lịch sử bất biến và không thể xóa.")
+
+
+class InventoryReceipt(models.Model):
+    received_at = models.DateField()
+    supplier = models.CharField(max_length=180, blank=True)
+    note = models.CharField(max_length=500, blank=True)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="inventory_receipts",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-received_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"Phiếu nhập #{self.pk} - {self.received_at:%d/%m/%Y}"
+
+
+class InventoryReceiptLine(models.Model):
+    receipt = models.ForeignKey(InventoryReceipt, on_delete=models.PROTECT, related_name="lines")
+    variant = models.ForeignKey(
+        ProductVariant, on_delete=models.PROTECT, related_name="receipt_lines"
+    )
+    quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    unit_cost = models.DecimalField(
+        max_digits=14, decimal_places=0, validators=[MinValueValidator(0)]
+    )
+    movement = models.OneToOneField(
+        StockMovement, on_delete=models.PROTECT, related_name="receipt_line"
+    )
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self) -> str:
+        return f"{self.variant.sku} x {self.quantity}"
 
 
 class ProductEvent(models.Model):

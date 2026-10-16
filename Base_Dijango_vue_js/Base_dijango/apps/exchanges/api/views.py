@@ -3,6 +3,7 @@ import uuid
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException, NotFound
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -135,8 +136,15 @@ class AdminExchangeListView(APIView):
 
     @extend_schema(tags=["Admin exchanges"], responses={200: ExchangeOutputSerializer(many=True)})
     def get(self, request):
-        queryset = list_admin_exchanges(status=request.query_params.get("status", ""))
-        return Response(ExchangeOutputSerializer(queryset, many=True).data)
+        queryset = list_admin_exchanges(
+            status=request.query_params.get("status", ""),
+            search=request.query_params.get("search", ""),
+            start_date=request.query_params.get("start_date", ""),
+            end_date=request.query_params.get("end_date", ""),
+        )
+        paginator = PageNumberPagination()
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        return paginator.get_paginated_response(ExchangeOutputSerializer(page, many=True).data)
 
 
 class AdminExchangeDetailView(APIView):

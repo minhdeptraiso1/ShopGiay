@@ -18,7 +18,7 @@ có bằng chứng và approval.
 - [Phase 6 - Đổi hàng](phases/phase-06.md)
 - [Phase 7 - Recommendation System](phases/phase-07.md)
 - [Phase 8 - Báo cáo và vận hành](phases/phase-08.md)
-- [Phase 9 - Release readiness](phases/phase-09.md)
+- [Phase 9 - Xác nhận giao và nhận hàng](phases/phase-09.md)
 
 ## Approval gates
 

@@ -13,6 +13,7 @@ DEBUG = False
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -20,6 +21,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "corsheaders",
+    "channels",
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
@@ -28,6 +30,8 @@ INSTALLED_APPS = [
     "apps.orders",
     "apps.engagement",
     "apps.exchanges",
+    "apps.operations",
+    "apps.notifications",
     "apps.health",
 ]
 
@@ -40,6 +44,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.operations.middleware.AuditContextMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -81,6 +86,12 @@ CACHES = {
             "SOCKET_TIMEOUT": env.int("REDIS_SOCKET_TIMEOUT", default=2),
         },
         "KEY_PREFIX": env("REDIS_KEY_PREFIX", default="django_base"),
+    }
+}
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {"hosts": [env("REDIS_URL", default="redis://127.0.0.1:6379/1")]},
     }
 }
 
@@ -142,7 +153,7 @@ SIMPLE_JWT = {
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
 }
-REFRESH_TOKEN_COOKIE_NAME = env("REFRESH_TOKEN_COOKIE_NAME", default="refresh_token")
+REFRESH_TOKEN_COOKIE_NAME = env("REFRESH_TOKEN_COOKIE_NAME", default="hai_duy_shop_refresh_token")
 REFRESH_TOKEN_COOKIE_PATH = "/api/v1/auth/"
 REFRESH_TOKEN_COOKIE_DOMAIN = env("REFRESH_TOKEN_COOKIE_DOMAIN", default=None) or None
 REFRESH_TOKEN_COOKIE_SECURE = env.bool("REFRESH_TOKEN_COOKIE_SECURE", default=True)
@@ -205,8 +216,10 @@ VNPAY_RETURN_URL = env("VNPAY_RETURN_URL", default="http://localhost:5173/paymen
 VNPAY_VERSION = env("VNPAY_VERSION", default="2.1.0")
 VNPAY_COMMAND = env("VNPAY_COMMAND", default="pay")
 VNPAY_ORDER_TYPE = env("VNPAY_ORDER_TYPE", default="other")
+
 EXCHANGE_WINDOW_DAYS = env.int("EXCHANGE_WINDOW_DAYS", default=30)
 EXCHANGE_RESERVATION_MINUTES = env.int("EXCHANGE_RESERVATION_MINUTES", default=1440)
+AUDIT_LOG_RETENTION_DAYS = env.int("AUDIT_LOG_RETENTION_DAYS", default=730)
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = env.bool("USE_X_FORWARDED_HOST", default=False)

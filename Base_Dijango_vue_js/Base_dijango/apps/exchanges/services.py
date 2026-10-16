@@ -155,6 +155,23 @@ def create_exchange(
             quantity=quantity,
         )
     _history(exchange=exchange, actor=user, old="", note="Khách hàng tạo yêu cầu đổi hàng")
+    from apps.notifications.services import create_notification, notify_staff
+
+    create_notification(
+        user_id=user.id,
+        kind="exchange",
+        title="Đã tiếp nhận yêu cầu đổi hàng",
+        message=f"Yêu cầu EX-{exchange.pk} đang chờ nhân viên duyệt.",
+        link="/exchanges",
+        payload={"exchange_id": exchange.id, "status": exchange.status},
+    )
+    notify_staff(
+        kind="exchange",
+        title="Có yêu cầu đổi hàng mới",
+        message=f"Yêu cầu EX-{exchange.pk} cần được kiểm tra.",
+        link="/admin/exchanges",
+        payload={"exchange_id": exchange.id, "status": exchange.status},
+    )
     return exchange, True
 
 
@@ -167,6 +184,15 @@ def cancel_customer_exchange(*, user: User, exchange_id: int) -> ExchangeRequest
     exchange.status = ExchangeRequest.Status.CANCELLED
     exchange.save(update_fields=["status", "updated_at"])
     _history(exchange=exchange, actor=user, old=old, note="Khách hàng hủy yêu cầu")
+    from apps.notifications.services import notify_staff
+
+    notify_staff(
+        kind="exchange",
+        title="Khách hàng đã hủy yêu cầu đổi",
+        message=f"Yêu cầu EX-{exchange.pk} đã được hủy.",
+        link="/admin/exchanges",
+        payload={"exchange_id": exchange.id, "status": exchange.status},
+    )
     return exchange
 
 
@@ -230,8 +256,14 @@ def transition_exchange(
     elif action == "reject" and old in (
         ExchangeRequest.Status.PENDING,
         ExchangeRequest.Status.APPROVED,
+        ExchangeRequest.Status.RECEIVED,
+        ExchangeRequest.Status.INSPECTED,
     ):
-        if old == ExchangeRequest.Status.APPROVED:
+        if old in (
+            ExchangeRequest.Status.APPROVED,
+            ExchangeRequest.Status.RECEIVED,
+            ExchangeRequest.Status.INSPECTED,
+        ):
             _release_reservations(
                 exchange=exchange, actor=actor, reason=f"Từ chối yêu cầu EX-{exchange.id}"
             )
@@ -244,33 +276,51 @@ def transition_exchange(
             item.received_quantity = received
             item.save(update_fields=["received_quantity"])
         exchange.status = ExchangeRequest.Status.RECEIVED
-    elif action == "inspect" and old == ExchangeRequest.Status.RECEIVED:
+    elif action == "inspect" and old in (
+        ExchangeRequest.Status.RECEIVED,
+        ExchangeRequest.Status.INSPECTED,
+    ):
+        if any(item.id not in updates for item in items):
+            raise ExchangeError("Thiếu kết quả kiểm hàng cho sản phẩm.")
+        if not any(updates[item.id].get("accepted_quantity", 0) for item in items):
+            raise ExchangeError(
+                "Cần có ít nhất một sản phẩm đạt kiểm tra; nếu không đạt, hãy từ chối yêu cầu."
+            )
         for item in items:
             row = updates.get(item.id)
-            if row is None:
-                raise ExchangeError("Thiếu kết quả kiểm hàng cho sản phẩm.")
             accepted = row.get("accepted_quantity", 0)
             if accepted < 0 or accepted > item.received_quantity:
                 raise ExchangeError("Số lượng đạt kiểm tra không hợp lệ.")
             disposition = row.get("disposition", ExchangeItem.Disposition.DAMAGED)
             if accepted and disposition != ExchangeItem.Disposition.RESTOCK:
                 raise ExchangeError("Hàng đạt kiểm tra phải có disposition restock.")
+            previous_accepted = item.accepted_quantity
             item.accepted_quantity = accepted
             item.disposition = disposition
             item.inspection_note = row.get("inspection_note", "").strip()
             item.save(update_fields=["accepted_quantity", "disposition", "inspection_note"])
             reservation = ExchangeReservation.objects.select_for_update().get(exchange_item=item)
-            release_quantity = reservation.quantity - accepted
-            if release_quantity:
+            stock_delta = (
+                previous_accepted - accepted
+                if old == ExchangeRequest.Status.INSPECTED
+                else reservation.quantity - accepted
+            )
+            if stock_delta:
                 _move_stock(
                     variant_id=reservation.variant_id,
-                    delta=release_quantity,
-                    kind=StockMovement.Kind.EXCHANGE_RELEASE,
-                    reason=f"Giảm giữ hàng sau kiểm tra EX-{exchange.id}",
+                    delta=stock_delta,
+                    kind=(
+                        StockMovement.Kind.EXCHANGE_RELEASE
+                        if stock_delta > 0
+                        else StockMovement.Kind.EXCHANGE_RESERVATION
+                    ),
+                    reason=f"Điều chỉnh giữ hàng sau kiểm tra EX-{exchange.id}",
                     actor=actor,
                 )
             if accepted:
                 reservation.quantity = accepted
+                reservation.status = ExchangeReservation.Status.ACTIVE
+                reservation.released_at = None
             else:
                 reservation.status = ExchangeReservation.Status.RELEASED
                 reservation.released_at = timezone.now()
@@ -295,6 +345,20 @@ def transition_exchange(
     exchange.staff_note = note.strip() or exchange.staff_note
     exchange.save()
     _history(exchange=exchange, actor=actor, old=old, note=note)
+    from apps.notifications.models import Notification
+    from apps.notifications.services import create_notification
+
+    create_notification(
+        user_id=exchange.user_id,
+        kind=Notification.Kind.EXCHANGE,
+        title="Cập nhật yêu cầu đổi hàng",
+        message=(
+            f"Yêu cầu EX-{exchange.id} đã chuyển sang "
+            f"{ExchangeRequest.Status(exchange.status).label.lower()}."
+        ),
+        link=f"/orders/{exchange.order_id}",
+        payload={"exchange_id": exchange.id, "status": exchange.status},
+    )
     return exchange
 
 

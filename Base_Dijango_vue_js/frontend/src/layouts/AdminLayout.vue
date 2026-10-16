@@ -7,6 +7,7 @@ import AppLogo from "@/components/common/AppLogo.vue";
 import ThemeToggle from "@/components/common/ThemeToggle.vue";
 import AppLink from "@/components/navigation/AppLink.vue";
 import { useAuth } from "@/modules/auth/composables/useAuth";
+import NotificationCenter from "@/modules/notifications/NotificationCenter.vue";
 
 interface NavigationItem {
   label: string;
@@ -65,10 +66,33 @@ const navigationSections = computed<NavigationSection[]>(() => {
           to: "/admin/exchanges",
           icon: "orders",
         },
+        {
+          label: "Báo cáo",
+          description: "KPI và báo cáo Excel",
+          to: "/admin/reports",
+          icon: "dashboard",
+        },
       ],
     },
   ];
   if (isAdmin.value) {
+    sections.push({
+      label: "Hệ thống",
+      items: [
+        {
+          label: "Nhân viên",
+          description: "Tài khoản và trạng thái",
+          to: "/admin/staff",
+          icon: "settings",
+        },
+        {
+          label: "Audit log",
+          description: "Lịch sử quản trị",
+          to: "/admin/audit-logs",
+          icon: "settings",
+        },
+      ],
+    });
     sections.push({
       label: "Catalog",
       items: [
@@ -356,6 +380,7 @@ watch(
             >Xem cửa hàng</AppLink
           >
           <ThemeToggle />
+          <NotificationCenter />
         </div>
       </header>
 

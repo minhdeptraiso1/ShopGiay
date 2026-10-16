@@ -4,6 +4,7 @@ import { useRoute } from "vue-router";
 
 import BaseButton from "@/components/base/BaseButton.vue";
 import BaseInput from "@/components/base/BaseInput.vue";
+import BasePagination from "@/components/base/BasePagination.vue";
 import AppAlert from "@/components/feedback/AppAlert.vue";
 import AppPopup from "@/components/feedback/AppPopup.vue";
 import FormField from "@/components/form/FormField.vue";
@@ -17,7 +18,7 @@ import {
   fetchAdminColors,
   fetchAdminProducts,
   fetchAdminSizes,
-  fetchAdminVariants,
+  fetchAdminVariantsPage,
   updateAdminVariant,
   type AdminColor,
   type AdminProduct,
@@ -35,6 +36,9 @@ const colors = ref<AdminColor[]>([]);
 const loading = ref(true);
 const error = ref("");
 const selectedProductFilter = ref<number | "">("");
+const search = ref("");
+const page = ref(1);
+const count = ref(0);
 
 // Modal Create / Edit state
 const showModal = ref(false);
@@ -68,10 +72,7 @@ const showDeleteConfirm = ref(false);
 const variantToDelete = ref<AdminVariant | null>(null);
 const deleteLoading = ref(false);
 
-const filteredVariants = computed(() => {
-  if (!selectedProductFilter.value) return variants.value;
-  return variants.value.filter((v) => v.product === Number(selectedProductFilter.value));
-});
+const filteredVariants = computed(() => variants.value);
 
 // Filter sizes that match the selected product's brand
 const availableSizes = computed(() => {
@@ -86,12 +87,17 @@ async function loadData() {
   error.value = "";
   try {
     const [variantsRes, productsRes, sizesRes, colorsRes] = await Promise.all([
-      fetchAdminVariants(),
+      fetchAdminVariantsPage({
+        page: page.value,
+        search: search.value || undefined,
+        product: selectedProductFilter.value || undefined,
+      }),
       fetchAdminProducts(),
       fetchAdminSizes(),
       fetchAdminColors(),
     ]);
-    variants.value = variantsRes;
+    variants.value = variantsRes.results;
+    count.value = variantsRes.count;
     products.value = productsRes;
     sizes.value = sizesRes;
     colors.value = colorsRes;
@@ -110,6 +116,16 @@ async function loadData() {
   } finally {
     loading.value = false;
   }
+}
+
+async function applyFilters(): Promise<void> {
+  page.value = 1;
+  await loadData();
+}
+
+async function changePage(value: number): Promise<void> {
+  page.value = value;
+  await loadData();
 }
 
 function autoGenerateSku() {
@@ -266,6 +282,7 @@ function formatPrice(amount: string | number): string {
 onMounted(() => {
   void loadData();
 });
+watch(selectedProductFilter, () => void applyFilters());
 </script>
 
 <template>
@@ -287,6 +304,13 @@ onMounted(() => {
           </p>
         </div>
         <div class="flex items-center gap-3">
+          <BaseInput
+            v-model="search"
+            id="variant-search"
+            name="search"
+            placeholder="Tìm SKU hoặc tên sản phẩm"
+            @keyup.enter="applyFilters"
+          />
           <BaseButton variant="secondary" size="sm" @click="loadData"> Làm mới </BaseButton>
           <BaseButton variant="primary" size="sm" class="gap-2" @click="openCreateModal">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -489,6 +513,9 @@ onMounted(() => {
             </tr>
           </tbody>
         </table>
+      </div>
+      <div class="border-t border-white/10 p-4">
+        <BasePagination :count="count" :page="page" :disabled="loading" @update:page="changePage" />
       </div>
     </div>
 

@@ -101,7 +101,10 @@ const submit = handleSubmit(async (values) => {
   submitError.value = "";
   try {
     await saveAddress(payloadFromValues(values), editingId.value);
-    toast.show(editingId.value ? "Cập nhật địa chỉ thành công." : "Thêm địa chỉ thành công.", "success");
+    toast.show(
+      editingId.value ? "Cập nhật địa chỉ thành công." : "Thêm địa chỉ thành công.",
+      "success",
+    );
     cancelEdit();
   } catch (requestError) {
     const appError = toAppError(requestError);
@@ -161,7 +164,10 @@ onMounted(loadAddresses);
       <section aria-labelledby="address-list-heading" class="space-y-6">
         <header class="space-y-1.5">
           <p class="text-xs font-bold uppercase tracking-widest text-emerald-400">Sổ địa chỉ</p>
-          <h1 id="address-list-heading" class="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white">
+          <h1
+            id="address-list-heading"
+            class="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white"
+          >
             Địa chỉ nhận hàng
           </h1>
           <p class="text-sm text-slate-400">
@@ -171,9 +177,20 @@ onMounted(loadAddresses);
 
         <AppAlert v-if="error" variant="error" title="Không thể tải địa chỉ">{{ error }}</AppAlert>
 
-        <div v-if="loading" class="flex items-center justify-center p-12 text-slate-400" role="status">
+        <div
+          v-if="loading"
+          class="flex items-center justify-center p-12 text-slate-400"
+          role="status"
+        >
           <svg class="h-6 w-6 animate-spin text-emerald-400 mr-3" viewBox="0 0 24 24" fill="none">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
           </svg>
           <span class="text-sm font-semibold">Đang tải danh sách địa chỉ…</span>
@@ -183,10 +200,22 @@ onMounted(loadAddresses);
           v-else-if="addresses.length === 0"
           class="rounded-3xl border border-dashed border-white/15 bg-white/5 p-8 text-center"
         >
-          <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-slate-400">
+          <div
+            class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-slate-400"
+          >
             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+              />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+              />
             </svg>
           </div>
           <p class="font-bold text-white">Bạn chưa có địa chỉ nhận hàng nào.</p>
@@ -203,13 +232,15 @@ onMounted(loadAddresses);
               'rounded-3xl border p-5 sm:p-6 transition-all backdrop-blur-xl shadow-lg',
               address.is_default
                 ? 'border-emerald-500/50 bg-[#121722]/90 shadow-[0_10px_30px_rgba(16,185,129,0.1)]'
-                : 'border-white/10 bg-[#12151e]/85 hover:border-white/20'
+                : 'border-white/10 bg-[#12151e]/85 hover:border-white/20',
             ]"
           >
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div class="flex flex-wrap items-center gap-2">
-                  <h2 class="font-black text-white text-base sm:text-lg">{{ address.recipient_name }}</h2>
+                  <h2 class="font-black text-white text-base sm:text-lg">
+                    {{ address.recipient_name }}
+                  </h2>
                   <span
                     v-if="address.is_default"
                     class="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-emerald-400"
@@ -266,11 +297,18 @@ onMounted(loadAddresses);
       <section
         class="self-start rounded-3xl border border-white/10 bg-[#12151e]/85 backdrop-blur-xl p-6 sm:p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] lg:sticky lg:top-24"
       >
-        <h2 id="address-form-heading" class="text-xl font-black uppercase tracking-tight text-white">
+        <h2
+          id="address-form-heading"
+          class="text-xl font-black uppercase tracking-tight text-white"
+        >
           {{ editingId ? "Cập nhật địa chỉ" : "Thêm địa chỉ mới" }}
         </h2>
         <p class="mt-1 text-xs text-slate-400">
-          {{ editingId ? "Chỉnh sửa thông tin địa chỉ đã lưu." : "Nhập đầy đủ thông tin để giao hàng chuẩn xác." }}
+          {{
+            editingId
+              ? "Chỉnh sửa thông tin địa chỉ đã lưu."
+              : "Nhập đầy đủ thông tin để giao hàng chuẩn xác."
+          }}
         </p>
 
         <form class="mt-6 space-y-4" novalidate @submit.prevent="submit">

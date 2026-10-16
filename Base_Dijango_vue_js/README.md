@@ -129,7 +129,7 @@ Mở <http://localhost:5173>. Tài khoản dev mặc định:
 Mật khẩu thực tế lấy từ `DEMO_USER_PASSWORD` trong `Base_dijango/.env`. Hai lệnh seed chỉ chạy khi
 `DEBUG=True`; không dùng các tài khoản này ở production.
 
-Vite proxy `/api` và `/health` sang backend cổng `8000`, vì vậy local mặc định không cần đặt
+Vite proxy `/api`, `/health` và WebSocket `/ws` sang backend cổng `8000`, vì vậy local mặc định không cần đặt
 `VITE_API_BASE_URL`.
 
 Các màn Phase 5 dùng để kiểm thử:
@@ -161,8 +161,17 @@ quay lại đúng `/orders/{id}`. Frontend gửi toàn bộ tham số `vnp_*` v�
 toán sau khi xác minh checksum, merchant, amount, mã giao dịch và ownership. IPN vẫn phải cấu hình để xử
 lý giao dịch khi khách đóng trình duyệt trước khi quay về website.
 
-Khi STAFF chuyển đơn sang `shipped`, khách hàng có nút **Đã nhận được hàng** trên chi tiết đơn. Sau khi
-xác nhận, đơn thành `completed`; khách có thể chọn **Đánh giá sản phẩm** cho từng order item.
+Phase 8 bổ sung phân trang server-side 20 dòng/trang, bộ lọc quản trị, phiếu nhập kho có giá nhập,
+giá vốn bình quân, lợi nhuận và file Excel tổng hợp. Redis phải hoạt động để nhận notification và cập nhật
+đơn hàng, đổi hàng, tồn kho theo thời gian thực.
+
+Flow giao hàng dùng ba bước: STAFF/ADMIN chuyển đơn sang `shipped`, sau khi giao thành công bấm
+**Xác nhận đã giao** để chuyển sang `delivered`; khách hàng bấm **Đã nhận hàng** để chuyển đơn sang
+`completed`. Khi hoàn tất, đơn COD được ghi nhận đã thanh toán, điểm được cộng một lần và khách có thể
+đánh giá từng sản phẩm.
+
+CSV nhập kho tại `/admin/inventory` dùng UTF-8 và đúng sáu cột:
+`Mã SKU, Số lượng, Giá nhập/đơn vị, Ngày nhập, Nhà cung cấp, Ghi chú`.
 
 > Để test VNPay end-to-end, `vnp_ReturnUrl` có thể là frontend local, nhưng IPN phải là URL backend HTTPS
 > public (ví dụ `https://<domain>/api/v1/payments/vnpay/ipn/`) và phải khai báo trong Merchant Admin.

@@ -64,6 +64,7 @@ html.light .bg-\[\#090a0f\] {
 }
 
 html.light .bg-\[\#0c0e17\],
+html.light .bg-\[\#0c0e17\]\/70,
 html.light .bg-\[\#0c0e17\]\/85,
 html.light .bg-\[\#0c0e17\]\/80,
 html.light .bg-\[\#090a0f\]\/90,
@@ -86,7 +87,8 @@ html.light .auth-card {
 }
 
 html.light .bg-\[\#07080c\],
-html.light .bg-\[\#0d1017\] {
+html.light .bg-\[\#0d1017\],
+html.light .bg-\[\#0b0e14\] {
   background-color: #f1f5f9 !important;
   color: #0f172a !important;
 }
@@ -126,10 +128,17 @@ html.light .bg-white\/10 {
   color: #0f172a !important;
 }
 
-html.light input:not([disabled]) {
+html.light input:not([disabled]),
+html.light select:not([disabled]),
+html.light textarea:not([disabled]) {
   background-color: #ffffff !important;
   color: #0f172a !important;
   border-color: #cbd5e1 !important;
+}
+
+html.light option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
 }
 
 html.light input:disabled {

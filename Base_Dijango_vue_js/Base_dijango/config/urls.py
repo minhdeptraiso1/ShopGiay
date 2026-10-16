@@ -13,10 +13,12 @@ urlpatterns = [
     path("api/v1/admin/", include("apps.orders.api.admin_urls")),
     path("api/v1/admin/", include("apps.engagement.api.admin_urls")),
     path("api/v1/admin/", include("apps.exchanges.api.admin_urls")),
+    path("api/v1/admin/", include("apps.operations.api.urls")),
     path("api/v1/", include("apps.catalog.api.urls")),
     path("api/v1/", include("apps.orders.api.urls")),
     path("api/v1/", include("apps.engagement.api.urls")),
     path("api/v1/", include("apps.exchanges.api.urls")),
+    path("api/v1/notifications/", include("apps.notifications.api.urls")),
     path("health/", include("apps.health.urls")),
 ]
 

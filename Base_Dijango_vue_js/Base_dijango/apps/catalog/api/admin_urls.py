@@ -6,6 +6,10 @@ from .admin_views import (
     CategoryAdminViewSet,
     ColorAdminViewSet,
     InventoryAdjustmentView,
+    InventoryReceiptCsvCurrentView,
+    InventoryReceiptCsvImportView,
+    InventoryReceiptCsvTemplateView,
+    InventoryReceiptListCreateView,
     ProductAdminViewSet,
     ProductImageAdminViewSet,
     ProductVariantAdminViewSet,
@@ -30,6 +34,26 @@ urlpatterns = [
         name="recommendation-metrics",
     ),
     path("", include(router.urls)),
+    path(
+        "inventory/receipts/",
+        InventoryReceiptListCreateView.as_view(),
+        name="inventory-receipt-list-create",
+    ),
+    path(
+        "inventory/receipts/import/",
+        InventoryReceiptCsvImportView.as_view(),
+        name="inventory-receipt-import",
+    ),
+    path(
+        "inventory/receipts/template/",
+        InventoryReceiptCsvTemplateView.as_view(),
+        name="inventory-receipt-template",
+    ),
+    path(
+        "inventory/receipts/export-current/",
+        InventoryReceiptCsvCurrentView.as_view(),
+        name="inventory-receipt-export-current",
+    ),
     path(
         "inventory/variants/<int:variant_id>/adjustments/",
         InventoryAdjustmentView.as_view(),

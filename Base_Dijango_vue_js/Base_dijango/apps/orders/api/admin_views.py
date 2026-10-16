@@ -7,7 +7,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsStaffOrAdmin
-from apps.orders.fulfillment import OrderTransitionError, StaleOrderError, transition_order
+from apps.orders.fulfillment import (
+    OrderTransitionError,
+    StaleOrderError,
+    transition_order,
+)
 from apps.orders.models import Order
 from apps.orders.selectors import get_admin_order, list_admin_orders
 from common.serializers import ApiErrorSerializer
@@ -40,7 +44,13 @@ class AdminOrderListView(APIView):
         },
     )
     def get(self, request):
-        queryset = list_admin_orders(status=request.query_params.get("status"))
+        queryset = list_admin_orders(
+            status=request.query_params.get("status"),
+            search=request.query_params.get("search", ""),
+            start_date=request.query_params.get("start_date", ""),
+            end_date=request.query_params.get("end_date", ""),
+            today=request.query_params.get("today", "").lower() == "true",
+        )
         paginator = PageNumberPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
         return paginator.get_paginated_response(AdminOrderOutputSerializer(page, many=True).data)

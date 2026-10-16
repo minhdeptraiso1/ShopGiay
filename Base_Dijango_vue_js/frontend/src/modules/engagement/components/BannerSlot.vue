@@ -44,18 +44,20 @@ onBeforeUnmount(() => {
         <AppLink
           :key="activeBanner.id"
           :to="activeBanner.target_url || '/products'"
-          class="group relative block min-h-40 overflow-hidden rounded-3xl border border-white/10 bg-[#12151e] no-underline"
+          class="group relative block min-h-80 overflow-hidden rounded-3xl border border-white/10 bg-[#12151e] no-underline shadow-xl"
         >
           <img
             :src="activeBanner.image_url"
             :alt="activeBanner.title"
-            class="absolute inset-0 h-full w-full object-cover opacity-55 transition duration-700 group-hover:scale-[1.02] group-hover:opacity-65"
+            class="absolute inset-0 h-full w-full object-cover opacity-65 transition duration-700 group-hover:scale-[1.02] group-hover:opacity-75"
           />
           <span
             class="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent"
           />
-          <span class="relative z-10 flex min-h-40 max-w-xl flex-col justify-center p-6 sm:p-8">
-            <span class="text-xl font-black text-white sm:text-2xl">{{ activeBanner.title }}</span>
+          <span
+            class="always-white-text relative z-10 flex min-h-80 max-w-xl flex-col justify-center p-8 sm:p-12"
+          >
+            <span class="text-2xl font-black text-white sm:text-4xl">{{ activeBanner.title }}</span>
             <span
               v-if="activeBanner.subtitle"
               class="mt-2 text-sm leading-relaxed text-slate-200"

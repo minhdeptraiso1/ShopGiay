@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from "vue";
 
 import BaseButton from "@/components/base/BaseButton.vue";
 import BaseInput from "@/components/base/BaseInput.vue";
+import BasePagination from "@/components/base/BasePagination.vue";
 import AppAlert from "@/components/feedback/AppAlert.vue";
 import AppPopup from "@/components/feedback/AppPopup.vue";
 import FormField from "@/components/form/FormField.vue";
@@ -16,7 +17,7 @@ import { toSlug } from "../slug";
 import {
   createProduct,
   deleteProduct,
-  fetchAdminProducts,
+  fetchAdminProductsPage,
   fetchAdminProductImages,
   uploadAdminProductImage,
   updateAdminProductImage,
@@ -35,6 +36,10 @@ const brands = ref<Brand[]>([]);
 const loading = ref(true);
 const error = ref("");
 const updatingId = ref<number | null>(null);
+const search = ref("");
+const statusFilter = ref("");
+const page = ref(1);
+const count = ref(0);
 
 // Modal Create / Edit state
 const showFormModal = ref(false);
@@ -163,11 +168,16 @@ async function loadData() {
   error.value = "";
   try {
     const [productsRes, categoriesRes, brandsRes] = await Promise.all([
-      fetchAdminProducts(),
+      fetchAdminProductsPage({
+        page: page.value,
+        search: search.value || undefined,
+        status: statusFilter.value || undefined,
+      }),
       fetchCategories().catch(() => []),
       fetchBrands().catch(() => []),
     ]);
-    products.value = productsRes;
+    products.value = productsRes.results;
+    count.value = productsRes.count;
     categories.value = categoriesRes;
     brands.value = brandsRes;
   } catch (err) {
@@ -175,6 +185,16 @@ async function loadData() {
   } finally {
     loading.value = false;
   }
+}
+
+async function applyFilters(): Promise<void> {
+  page.value = 1;
+  await loadData();
+}
+
+async function changePage(value: number): Promise<void> {
+  page.value = value;
+  await loadData();
 }
 
 const reloadingCatalogOptions = ref(false);
@@ -372,11 +392,27 @@ onMounted(loadData);
           </p>
         </div>
         <div class="flex items-center gap-3">
+          <BaseInput
+            v-model="search"
+            id="product-search"
+            name="search"
+            placeholder="Tìm tên hoặc slug"
+            @keyup.enter="applyFilters"
+          />
+          <select
+            v-model="statusFilter"
+            class="min-h-11 rounded-xl border border-white/15 bg-[#12151e] px-3 text-sm"
+            @change="applyFilters"
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="published">Đã xuất bản</option>
+            <option value="draft">Bản nháp</option>
+          </select>
           <BaseButton
             size="sm"
             variant="secondary"
             class="rounded-xl border border-white/15"
-            @click="loadData"
+            @click="applyFilters"
           >
             Làm mới
           </BaseButton>
@@ -619,6 +655,14 @@ onMounted(loadData);
               </tr>
             </tbody>
           </table>
+        </div>
+        <div class="border-t border-white/10 p-4">
+          <BasePagination
+            :count="count"
+            :page="page"
+            :disabled="loading"
+            @update:page="changePage"
+          />
         </div>
       </div>
     </div>

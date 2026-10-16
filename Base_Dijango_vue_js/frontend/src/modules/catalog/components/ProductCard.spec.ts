@@ -12,7 +12,7 @@ const product: ProductListItem = {
   slug: "speed-pro",
   category: null,
   brand: null,
-      product_type: "footwear",
+  product_type: "footwear",
   primary_image: null,
   min_price: "2650000",
   max_price: "2650000",

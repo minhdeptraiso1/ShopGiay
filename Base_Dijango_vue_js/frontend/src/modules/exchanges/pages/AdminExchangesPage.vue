@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 
 import { useToastStore } from "@/app/stores/toast";
 import BaseButton from "@/components/base/BaseButton.vue";
 import BaseInput from "@/components/base/BaseInput.vue";
+import BasePagination from "@/components/base/BasePagination.vue";
 import BaseTextarea from "@/components/base/BaseTextarea.vue";
 import AppAlert from "@/components/feedback/AppAlert.vue";
 import FormField from "@/components/form/FormField.vue";
@@ -19,6 +20,11 @@ const loading = ref(true);
 const saving = ref(false);
 const error = ref("");
 const statusFilter = ref("");
+const search = ref("");
+const startDate = ref("");
+const endDate = ref("");
+const page = ref(1);
+const count = ref(0);
 const selected = ref<ExchangeRequest | null>(null);
 const note = ref("");
 const trackingNumber = ref("");
@@ -44,7 +50,15 @@ async function load(): Promise<void> {
   loading.value = true;
   error.value = "";
   try {
-    exchanges.value = await fetchAdminExchanges(statusFilter.value);
+    const response = await fetchAdminExchanges({
+      page: page.value,
+      status: statusFilter.value || undefined,
+      search: search.value || undefined,
+      start_date: startDate.value || undefined,
+      end_date: endDate.value || undefined,
+    });
+    exchanges.value = response.results;
+    count.value = response.count;
     if (selected.value) {
       selected.value = exchanges.value.find((item) => item.id === selected.value?.id) ?? null;
     }
@@ -55,16 +69,52 @@ async function load(): Promise<void> {
   }
 }
 
+async function applyFilters(): Promise<void> {
+  page.value = 1;
+  await load();
+}
+
+async function clearFilters(): Promise<void> {
+  search.value = "";
+  startDate.value = "";
+  endDate.value = "";
+  statusFilter.value = "";
+  await applyFilters();
+}
+
+async function changePage(value: number): Promise<void> {
+  page.value = value;
+  await load();
+}
+
+function handleRealtime(event: Event): void {
+  const detail = (event as CustomEvent<{ payload?: { kind?: string } }>).detail;
+  if (detail.payload?.kind === "exchange") void load();
+}
+
 function choose(item: ExchangeRequest): void {
   selected.value = item;
   note.value = "";
   trackingNumber.value = item.tracking_number;
   item.items.forEach((line) => {
+    const hasInspectionResult = line.disposition !== "pending";
     receiveQuantities[line.id] = String(line.quantity);
-    acceptedQuantities[line.id] = String(line.received_quantity || line.quantity);
-    dispositions[line.id] = "restock";
-    inspectionNotes[line.id] = "";
+    acceptedQuantities[line.id] = String(
+      hasInspectionResult ? line.accepted_quantity : line.received_quantity || line.quantity,
+    );
+    dispositions[line.id] = line.disposition === "damaged" ? "damaged" : "restock";
+    inspectionNotes[line.id] = line.inspection_note;
   });
+}
+
+function inspectedItemsPayload(): NonNullable<ExchangeTransitionInput["inspected_items"]> {
+  if (!selected.value) return [];
+  return selected.value.items.map((item) => ({
+    item_id: item.id,
+    accepted_quantity: Number(acceptedQuantities[item.id]) || 0,
+    disposition: dispositions[item.id] ?? "damaged",
+    inspection_note: inspectionNotes[item.id] || undefined,
+  }));
 }
 
 async function transition(action: ExchangeTransitionInput["action"]): Promise<void> {
@@ -82,12 +132,7 @@ async function transition(action: ExchangeTransitionInput["action"]): Promise<vo
     }));
   }
   if (action === "inspect") {
-    payload.inspected_items = selected.value.items.map((item) => ({
-      item_id: item.id,
-      accepted_quantity: Number(acceptedQuantities[item.id]) || 0,
-      disposition: dispositions[item.id] ?? "damaged",
-      inspection_note: inspectionNotes[item.id] || undefined,
-    }));
+    payload.inspected_items = inspectedItemsPayload();
   }
   if (action === "prepare" || action === "ship") {
     payload.tracking_number = trackingNumber.value.trim() || undefined;
@@ -105,14 +150,57 @@ async function transition(action: ExchangeTransitionInput["action"]): Promise<vo
   }
 }
 
-watch(statusFilter, () => void load());
-onMounted(() => void load());
+async function saveInspectionAndPrepare(): Promise<void> {
+  if (!selected.value) return;
+  const inspectedItems = inspectedItemsPayload();
+  if (!inspectedItems.some((item) => item.accepted_quantity > 0)) {
+    toast.show(
+      "Chưa có sản phẩm đạt kiểm tra. Hãy chọn “Đạt / nhập lại kho” và nhập số lượng đạt.",
+      "error",
+    );
+    return;
+  }
+  saving.value = true;
+  try {
+    const inspected = await transitionAdminExchange(selected.value.id, {
+      action: "inspect",
+      expected_updated_at: selected.value.updated_at,
+      inspected_items: inspectedItems,
+      note: note.value.trim() || undefined,
+    });
+    const prepared = await transitionAdminExchange(inspected.id, {
+      action: "prepare",
+      expected_updated_at: inspected.updated_at,
+      tracking_number: trackingNumber.value.trim() || undefined,
+      note: note.value.trim() || undefined,
+    });
+    const index = exchanges.value.findIndex((item) => item.id === prepared.id);
+    if (index >= 0) exchanges.value[index] = prepared;
+    choose(prepared);
+    toast.show(
+      `Đã lưu kết quả kiểm và chuyển EX-${String(prepared.id)} sang sẵn sàng giao đổi.`,
+      "success",
+    );
+  } catch (err) {
+    toast.show(toAppError(err).message, "error");
+  } finally {
+    saving.value = false;
+  }
+}
+
+onMounted(() => {
+  globalThis.addEventListener("hai-duy:realtime", handleRealtime);
+  void load();
+});
+onBeforeUnmount(() => {
+  globalThis.removeEventListener("hai-duy:realtime", handleRealtime);
+});
 </script>
 
 <template>
   <AdminLayout>
     <div class="space-y-6">
-      <header class="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-6">
+      <header class="border-b border-white/10 pb-6">
         <div>
           <p class="text-xs font-black tracking-[0.2em] text-emerald-400 uppercase">Hậu mãi</p>
           <h1 class="mt-2 text-3xl font-black text-white">Quản lý đổi hàng</h1>
@@ -120,24 +208,65 @@ onMounted(() => void load());
             Duyệt, nhận, kiểm hàng và giao đúng biến thể thay thế. Không xử lý hoàn tiền.
           </p>
         </div>
-        <div class="flex flex-wrap gap-2">
-          <BaseButton
-            v-for="option in [
-              { value: '', label: 'Tất cả' },
-              { value: 'pending', label: 'Chờ duyệt' },
-              { value: 'approved', label: 'Chờ nhận' },
-              { value: 'received', label: 'Chờ kiểm' },
-              { value: 'replacement_ready', label: 'Sẵn sàng giao' },
-              { value: 'replacement_shipped', label: 'Đang giao đổi' },
-            ]"
-            :key="option.value"
-            size="sm"
-            :variant="statusFilter === option.value ? 'primary' : 'secondary'"
-            @click="statusFilter = option.value"
-            >{{ option.label }}</BaseButton
-          >
-        </div>
       </header>
+
+      <section class="space-y-3 rounded-2xl border border-white/10 bg-[#12151e] p-4">
+        <div
+          class="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(22rem,1.6fr)_minmax(11rem,.7fr)_minmax(11rem,.7fr)_auto_auto] xl:items-center"
+        >
+          <BaseInput
+            v-model="search"
+            id="exchange-search"
+            name="search"
+            placeholder="Mã yêu cầu, đơn hàng, email"
+            clearable
+            @keyup.enter="applyFilters"
+          />
+          <BaseInput
+            v-model="startDate"
+            id="exchange-start"
+            name="start_date"
+            type="date"
+            aria-label="Từ ngày"
+          />
+          <BaseInput
+            v-model="endDate"
+            id="exchange-end"
+            name="end_date"
+            type="date"
+            aria-label="Đến ngày"
+          />
+          <BaseButton size="md" @click="applyFilters">Lọc danh sách</BaseButton>
+          <BaseButton size="md" variant="secondary" @click="clearFilters"> Xóa bộ lọc </BaseButton>
+        </div>
+        <div class="overflow-x-auto pb-1">
+          <div class="flex min-w-max items-center gap-2" aria-label="Lọc theo trạng thái đổi hàng">
+            <BaseButton
+              v-for="option in [
+                { value: '', label: 'Tất cả' },
+                { value: 'pending', label: 'Chờ duyệt' },
+                { value: 'approved', label: 'Chờ nhận' },
+                { value: 'received', label: 'Chờ kiểm' },
+                { value: 'inspected', label: 'Đã kiểm' },
+                { value: 'replacement_ready', label: 'Sẵn sàng giao' },
+                { value: 'replacement_shipped', label: 'Đang giao đổi' },
+                { value: 'completed', label: 'Hoàn tất' },
+                { value: 'rejected', label: 'Từ chối' },
+                { value: 'cancelled', label: 'Đã hủy' },
+              ]"
+              :key="option.value"
+              size="sm"
+              class="min-w-[6.5rem] shrink-0 whitespace-nowrap"
+              :variant="statusFilter === option.value ? 'primary' : 'secondary'"
+              @click="
+                statusFilter = option.value;
+                applyFilters();
+              "
+              >{{ option.label }}</BaseButton
+            >
+          </div>
+        </div>
+      </section>
       <AppAlert v-if="error" variant="error" title="Không tải được yêu cầu">{{ error }}</AppAlert>
       <p v-else-if="loading" class="py-16 text-center text-slate-400">Đang tải yêu cầu đổi hàng…</p>
       <div v-else class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_28rem]">
@@ -179,6 +308,12 @@ onMounted(() => void load());
           >
             Không có yêu cầu phù hợp.
           </p>
+          <BasePagination
+            :count="count"
+            :page="page"
+            :disabled="loading"
+            @update:page="changePage"
+          />
         </section>
 
         <aside
@@ -226,7 +361,10 @@ onMounted(() => void load());
                     :max="item.quantity"
                     @update:model-value="receiveQuantities[item.id] = $event"
                 /></FormField>
-                <div v-if="selected.status === 'received'" class="mt-3 space-y-3">
+                <div
+                  v-if="selected.status === 'received' || selected.status === 'inspected'"
+                  class="mt-3 space-y-3"
+                >
                   <FormField
                     v-slot="field"
                     label="Số lượng đạt kiểm tra"
@@ -244,7 +382,14 @@ onMounted(() => void load());
                     <BaseButton
                       size="sm"
                       :variant="dispositions[item.id] === 'restock' ? 'primary' : 'secondary'"
-                      @click="dispositions[item.id] = 'restock'"
+                      @click="
+                        dispositions[item.id] = 'restock';
+                        if ((Number(acceptedQuantities[item.id]) || 0) < 1) {
+                          acceptedQuantities[item.id] = String(
+                            item.received_quantity || item.quantity,
+                          );
+                        }
+                      "
                       >Đạt / nhập lại kho</BaseButton
                     ><BaseButton
                       size="sm"
@@ -301,11 +446,13 @@ onMounted(() => void load());
                 :loading="saving"
                 @click="transition('inspect')"
                 >Lưu kiểm hàng</BaseButton
-              ><BaseButton
-                v-else-if="selected.status === 'inspected'"
-                :loading="saving"
-                @click="transition('prepare')"
-                >Sẵn sàng giao đổi</BaseButton
+              ><template v-else-if="selected.status === 'inspected'">
+                <BaseButton variant="secondary" :disabled="saving" @click="transition('inspect')">
+                  Kiểm tra lại
+                </BaseButton>
+                <BaseButton :loading="saving" @click="saveInspectionAndPrepare">
+                  Lưu kiểm & sẵn sàng giao
+                </BaseButton> </template
               ><BaseButton
                 v-else-if="selected.status === 'replacement_ready'"
                 :loading="saving"

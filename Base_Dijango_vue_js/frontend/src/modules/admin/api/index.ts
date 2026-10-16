@@ -1,5 +1,6 @@
 import { apiClient } from "@/lib/http/client";
 import type { AxiosResponse } from "axios";
+import type { ListQuery, PaginatedResponse } from "@/lib/http/pagination";
 
 export interface AdminProduct {
   id: number;
@@ -13,6 +14,7 @@ export interface AdminProduct {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  has_variants: boolean;
 }
 
 export interface AdminVariant {
@@ -27,6 +29,7 @@ export interface AdminVariant {
   low_stock_threshold: number;
   is_active: boolean;
   inventory_quantity: number;
+  average_unit_cost: string;
   created_at: string;
   updated_at: string;
 }
@@ -141,7 +144,9 @@ export interface UpdateProductInput {
 }
 
 interface PaginatedAdminResponse<T> {
+  count: number;
   next: string | null;
+  previous: string | null;
   results: T[];
 }
 
@@ -181,6 +186,16 @@ export async function fetchAdminCategories(): Promise<AdminCategory[]> {
   return [];
 }
 
+export async function fetchAdminCategoriesPage(
+  page = 1,
+): Promise<PaginatedResponse<AdminCategory>> {
+  const response = await apiClient.get<PaginatedResponse<AdminCategory>>(
+    "/api/v1/admin/categories/",
+    { params: { page } },
+  );
+  return response.data;
+}
+
 export async function createAdminCategory(payload: CreateCategoryInput): Promise<AdminCategory> {
   const response = await apiClient.post<AdminCategory>("/api/v1/admin/categories/", payload);
   return response.data;
@@ -190,12 +205,15 @@ export async function updateAdminCategory(
   id: number,
   payload: UpdateCategoryInput,
 ): Promise<AdminCategory> {
-  const response = await apiClient.patch<AdminCategory>(`/api/v1/admin/categories/${id}/`, payload);
+  const response = await apiClient.patch<AdminCategory>(
+    `/api/v1/admin/categories/${String(id)}/`,
+    payload,
+  );
   return response.data;
 }
 
 export async function deleteAdminCategory(id: number): Promise<void> {
-  await apiClient.delete(`/api/v1/admin/categories/${id}/`);
+  await apiClient.delete(`/api/v1/admin/categories/${String(id)}/`);
 }
 
 // Brand Admin CRUD
@@ -208,22 +226,45 @@ export async function fetchAdminBrands(): Promise<AdminBrand[]> {
   return [];
 }
 
+export async function fetchAdminBrandsPage(page = 1): Promise<PaginatedResponse<AdminBrand>> {
+  const response = await apiClient.get<PaginatedResponse<AdminBrand>>("/api/v1/admin/brands/", {
+    params: { page },
+  });
+  return response.data;
+}
+
 export async function createAdminBrand(payload: CreateBrandInput): Promise<AdminBrand> {
   const response = await apiClient.post<AdminBrand>("/api/v1/admin/brands/", payload);
   return response.data;
 }
 
 export async function updateAdminBrand(id: number, payload: UpdateBrandInput): Promise<AdminBrand> {
-  const response = await apiClient.patch<AdminBrand>(`/api/v1/admin/brands/${id}/`, payload);
+  const response = await apiClient.patch<AdminBrand>(
+    `/api/v1/admin/brands/${String(id)}/`,
+    payload,
+  );
   return response.data;
 }
 
 export async function deleteAdminBrand(id: number): Promise<void> {
-  await apiClient.delete(`/api/v1/admin/brands/${id}/`);
+  await apiClient.delete(`/api/v1/admin/brands/${String(id)}/`);
 }
 
 export async function fetchAdminProducts(): Promise<AdminProduct[]> {
   return fetchAllAdminPages<AdminProduct>("/api/v1/admin/products/");
+}
+
+export async function fetchAdminProductsPage(params?: {
+  page?: number;
+  search?: string;
+  status?: string;
+  category?: number;
+  brand?: number;
+}): Promise<PaginatedResponse<AdminProduct>> {
+  const response = await apiClient.get<PaginatedResponse<AdminProduct>>("/api/v1/admin/products/", {
+    params,
+  });
+  return response.data;
 }
 
 export async function createProduct(payload: CreateProductInput): Promise<AdminProduct> {
@@ -235,19 +276,24 @@ export async function updateProduct(
   id: number,
   payload: UpdateProductInput,
 ): Promise<AdminProduct> {
-  const response = await apiClient.patch<AdminProduct>(`/api/v1/admin/products/${id}/`, payload);
+  const response = await apiClient.patch<AdminProduct>(
+    `/api/v1/admin/products/${String(id)}/`,
+    payload,
+  );
   return response.data;
 }
 
 export async function deleteProduct(id: number): Promise<void> {
-  await apiClient.delete(`/api/v1/admin/products/${id}/`);
+  await apiClient.delete(`/api/v1/admin/products/${String(id)}/`);
 }
 
 export async function updateProductStatus(
   id: number,
   status: "draft" | "published",
 ): Promise<AdminProduct> {
-  const response = await apiClient.patch<AdminProduct>(`/api/v1/admin/products/${id}/`, { status });
+  const response = await apiClient.patch<AdminProduct>(`/api/v1/admin/products/${String(id)}/`, {
+    status,
+  });
   return response.data;
 }
 
@@ -256,12 +302,50 @@ export async function fetchAdminVariants(productId?: number): Promise<AdminVaria
   return fetchAllAdminPages<AdminVariant>("/api/v1/admin/variants/", params);
 }
 
+export async function fetchAdminVariantsPage(params?: {
+  page?: number;
+  search?: string;
+  product?: number;
+  is_active?: boolean;
+}): Promise<PaginatedResponse<AdminVariant>> {
+  const response = await apiClient.get<PaginatedResponse<AdminVariant>>("/api/v1/admin/variants/", {
+    params,
+  });
+  return response.data;
+}
+
+export interface InventoryReceiptInput {
+  received_at: string;
+  supplier?: string;
+  note?: string;
+  lines: Array<{ variant_id: number; quantity: number; unit_cost: number }>;
+}
+
+export async function createInventoryReceipt(payload: InventoryReceiptInput): Promise<void> {
+  await apiClient.post("/api/v1/admin/inventory/receipts/", payload);
+}
+
+export async function importInventoryReceipts(file: File): Promise<void> {
+  const body = new FormData();
+  body.append("file", file);
+  await apiClient.post("/api/v1/admin/inventory/receipts/import/", body);
+}
+
+export async function downloadInventoryReceiptCsv(kind: "template" | "current"): Promise<Blob> {
+  const endpoint =
+    kind === "template"
+      ? "/api/v1/admin/inventory/receipts/template/"
+      : "/api/v1/admin/inventory/receipts/export-current/";
+  const response = await apiClient.get<Blob>(endpoint, { responseType: "blob" });
+  return response.data;
+}
+
 export async function adjustVariantInventory(
   variantId: number,
   payload: InventoryAdjustmentInput,
 ): Promise<StockMovementItem> {
   const response = await apiClient.post<StockMovementItem>(
-    `/api/v1/admin/inventory/variants/${variantId}/adjustments/`,
+    `/api/v1/admin/inventory/variants/${String(variantId)}/adjustments/`,
     payload,
   );
   return response.data;
@@ -269,7 +353,7 @@ export async function adjustVariantInventory(
 
 export async function fetchVariantStockMovements(variantId: number): Promise<StockMovementItem[]> {
   const response = await apiClient.get<StockMovementItem[] | { results: StockMovementItem[] }>(
-    `/api/v1/admin/inventory/variants/${variantId}/movements/`,
+    `/api/v1/admin/inventory/variants/${String(variantId)}/movements/`,
   );
   if (Array.isArray(response.data)) return response.data;
   if ("results" in response.data) return response.data.results;
@@ -281,7 +365,13 @@ export interface AdminOrderListItem {
   number?: string;
   customer_email?: string;
   status:
-    "pending_confirmation" | "confirmed" | "preparing" | "shipped" | "completed" | "cancelled";
+    | "pending_confirmation"
+    | "confirmed"
+    | "preparing"
+    | "shipped"
+    | "delivered"
+    | "completed"
+    | "cancelled";
   payment_method: string;
   payment_status: string;
   subtotal: string;
@@ -331,19 +421,20 @@ export interface OrderTransitionPayload {
   note?: string;
 }
 
-export async function fetchAdminOrders(statusFilter?: string): Promise<AdminOrderListItem[]> {
-  const params = statusFilter ? { status: statusFilter } : undefined;
-  const response = await apiClient.get<AdminOrderListItem[] | { results: AdminOrderListItem[] }>(
+export async function fetchAdminOrders(
+  params?: ListQuery,
+): Promise<PaginatedResponse<AdminOrderListItem>> {
+  const response = await apiClient.get<PaginatedResponse<AdminOrderListItem>>(
     "/api/v1/admin/orders/",
     { params },
   );
-  if (Array.isArray(response.data)) return response.data;
-  if ("results" in response.data) return response.data.results;
-  return [];
+  return response.data;
 }
 
 export async function fetchAdminOrderDetail(orderId: number): Promise<AdminOrderListItem> {
-  const response = await apiClient.get<AdminOrderListItem>(`/api/v1/admin/orders/${orderId}/`);
+  const response = await apiClient.get<AdminOrderListItem>(
+    `/api/v1/admin/orders/${String(orderId)}/`,
+  );
   return response.data;
 }
 
@@ -352,7 +443,7 @@ export async function transitionAdminOrder(
   payload: OrderTransitionPayload,
 ): Promise<AdminOrderListItem> {
   const response = await apiClient.post<AdminOrderListItem>(
-    `/api/v1/admin/orders/${orderId}/transitions/`,
+    `/api/v1/admin/orders/${String(orderId)}/transitions/`,
     payload,
   );
   return response.data;
@@ -395,18 +486,28 @@ export async function fetchAdminSizes(brandId?: number): Promise<AdminSize[]> {
   return [];
 }
 
+export async function fetchAdminSizesPage(
+  page = 1,
+  brand?: number,
+): Promise<PaginatedResponse<AdminSize>> {
+  const response = await apiClient.get<PaginatedResponse<AdminSize>>("/api/v1/admin/sizes/", {
+    params: { page, brand },
+  });
+  return response.data;
+}
+
 export async function createAdminSize(payload: CreateSizeInput): Promise<AdminSize> {
   const response = await apiClient.post<AdminSize>("/api/v1/admin/sizes/", payload);
   return response.data;
 }
 
 export async function updateAdminSize(id: number, payload: UpdateSizeInput): Promise<AdminSize> {
-  const response = await apiClient.patch<AdminSize>(`/api/v1/admin/sizes/${id}/`, payload);
+  const response = await apiClient.patch<AdminSize>(`/api/v1/admin/sizes/${String(id)}/`, payload);
   return response.data;
 }
 
 export async function deleteAdminSize(id: number): Promise<void> {
-  await apiClient.delete(`/api/v1/admin/sizes/${id}/`);
+  await apiClient.delete(`/api/v1/admin/sizes/${String(id)}/`);
 }
 
 // ==========================================
@@ -443,18 +544,28 @@ export async function fetchAdminColors(): Promise<AdminColor[]> {
   return [];
 }
 
+export async function fetchAdminColorsPage(page = 1): Promise<PaginatedResponse<AdminColor>> {
+  const response = await apiClient.get<PaginatedResponse<AdminColor>>("/api/v1/admin/colors/", {
+    params: { page },
+  });
+  return response.data;
+}
+
 export async function createAdminColor(payload: CreateColorInput): Promise<AdminColor> {
   const response = await apiClient.post<AdminColor>("/api/v1/admin/colors/", payload);
   return response.data;
 }
 
 export async function updateAdminColor(id: number, payload: UpdateColorInput): Promise<AdminColor> {
-  const response = await apiClient.patch<AdminColor>(`/api/v1/admin/colors/${id}/`, payload);
+  const response = await apiClient.patch<AdminColor>(
+    `/api/v1/admin/colors/${String(id)}/`,
+    payload,
+  );
   return response.data;
 }
 
 export async function deleteAdminColor(id: number): Promise<void> {
-  await apiClient.delete(`/api/v1/admin/colors/${id}/`);
+  await apiClient.delete(`/api/v1/admin/colors/${String(id)}/`);
 }
 
 // ==========================================
@@ -493,12 +604,15 @@ export async function updateAdminVariant(
   id: number,
   payload: UpdateVariantInput,
 ): Promise<AdminVariant> {
-  const response = await apiClient.patch<AdminVariant>(`/api/v1/admin/variants/${id}/`, payload);
+  const response = await apiClient.patch<AdminVariant>(
+    `/api/v1/admin/variants/${String(id)}/`,
+    payload,
+  );
   return response.data;
 }
 
 export async function deleteAdminVariant(id: number): Promise<void> {
-  await apiClient.delete(`/api/v1/admin/variants/${id}/`);
+  await apiClient.delete(`/api/v1/admin/variants/${String(id)}/`);
 }
 
 // ==========================================
@@ -541,12 +655,12 @@ export async function updateAdminProductImage(
   payload: { alt_text?: string; sort_order?: number; is_primary?: boolean },
 ): Promise<AdminProductImage> {
   const response = await apiClient.patch<AdminProductImage>(
-    `/api/v1/admin/product-images/${id}/`,
+    `/api/v1/admin/product-images/${String(id)}/`,
     payload,
   );
   return response.data;
 }
 
 export async function deleteAdminProductImage(id: number): Promise<void> {
-  await apiClient.delete(`/api/v1/admin/product-images/${id}/`);
+  await apiClient.delete(`/api/v1/admin/product-images/${String(id)}/`);
 }

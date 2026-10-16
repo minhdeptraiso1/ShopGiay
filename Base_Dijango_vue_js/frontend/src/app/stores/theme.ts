@@ -6,10 +6,10 @@ export type ThemeMode = "dark" | "light";
 const THEME_STORAGE_KEY = "hd_theme_mode";
 
 export const useThemeStore = defineStore("theme", () => {
-  const initialTheme = (typeof localStorage !== "undefined" &&
-    localStorage.getItem(THEME_STORAGE_KEY) === "light")
-    ? "light"
-    : "dark";
+  const initialTheme =
+    typeof localStorage !== "undefined" && localStorage.getItem(THEME_STORAGE_KEY) === "light"
+      ? "light"
+      : "dark";
 
   const currentTheme = ref<ThemeMode>(initialTheme);
 

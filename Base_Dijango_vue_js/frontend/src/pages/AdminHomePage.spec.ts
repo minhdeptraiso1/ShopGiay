@@ -13,14 +13,32 @@ const authState = vi.hoisted(() => ({
     },
   },
 }));
+const fetchDashboardMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/modules/auth/composables/useAuth", () => ({
   useAuth: () => ({ user: authState.user }),
 }));
 
-vi.mock("@/modules/admin/api", () => ({
-  verifyAdminAccessRequest: vi.fn().mockResolvedValue("ok"),
+vi.mock("@/modules/operations/api", () => ({
+  fetchDashboard: fetchDashboardMock,
 }));
+
+const dashboardResponse = {
+  range: { start: "2026-09-24", end: "2026-10-01", timezone: "Asia/Ho_Chi_Minh" },
+  queue: { pending_confirmation: 7, preparing: 2, shipped: 3, completed: 4 },
+  low_stock_count: 5,
+  recent_activity: [],
+  revenue_series: [],
+  finance: {
+    revenue: "18600000",
+    revenue_change_percent: "12.4",
+    paid_order_count: 24,
+    average_order_value: "1420000",
+    net_revenue: "18000000",
+    cost_of_goods_sold: "11000000",
+    profit: "7000000",
+  },
+};
 
 const global = {
   stubs: {
@@ -32,6 +50,7 @@ const global = {
 describe("AdminHomePage", () => {
   beforeEach(() => {
     authState.user.value.roles = ["STAFF"];
+    fetchDashboardMock.mockResolvedValue(dashboardResponse);
   });
 
   it("shows the operations workspace for staff", async () => {
@@ -50,7 +69,8 @@ describe("AdminHomePage", () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain("Tổng quan kinh doanh");
-    expect(wrapper.text()).toContain("Doanh thu hôm nay");
-    expect(wrapper.text()).toContain("Thêm sản phẩm");
+    expect(wrapper.text()).toContain("Doanh thu thuần");
+    expect(wrapper.text()).toContain("Lợi nhuận");
+    expect(wrapper.text()).toContain("Xu hướng doanh thu thực tế");
   });
 });

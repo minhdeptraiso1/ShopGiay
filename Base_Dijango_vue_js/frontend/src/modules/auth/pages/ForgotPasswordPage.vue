@@ -63,7 +63,12 @@ const submit = handleSubmit(async (values) => {
           @blur="handleBlur"
         />
       </FormField>
-      <BaseButton type="submit" block :loading="loading" class="mt-2 text-sm font-black uppercase tracking-wider">
+      <BaseButton
+        type="submit"
+        block
+        :loading="loading"
+        class="mt-2 text-sm font-black uppercase tracking-wider"
+      >
         Gửi hướng dẫn
       </BaseButton>
     </form>

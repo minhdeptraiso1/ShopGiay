@@ -1,49 +1,126 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 
+import BaseButton from "@/components/base/BaseButton.vue";
+import BaseInput from "@/components/base/BaseInput.vue";
 import AppAlert from "@/components/feedback/AppAlert.vue";
+import FormField from "@/components/form/FormField.vue";
 import AppLink from "@/components/navigation/AppLink.vue";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import { toAppError } from "@/lib/http/errors";
-import { verifyAdminAccessRequest } from "@/modules/admin/api";
-import {
-  ADMIN_METRICS,
-  ORDER_QUEUE,
-  RECENT_ACTIVITY,
-  STAFF_METRICS,
-  WEEKLY_REVENUE,
-} from "@/modules/admin/dashboard.mock";
 import { useAuth } from "@/modules/auth/composables/useAuth";
+import { fetchDashboard, type DashboardData } from "@/modules/operations/api";
 
 const { user } = useAuth();
-const accessError = ref("");
-const accessLoading = ref(true);
+const dashboard = ref<DashboardData | null>(null);
+const loading = ref(true);
+const errorMessage = ref("");
+const today = new Date();
+const initialStart = new Date(today);
+initialStart.setDate(today.getDate() - 6);
+const startDate = ref(isoDate(initialStart));
+const endDate = ref(isoDate(today));
 
 const isAdmin = computed(() => user.value?.roles.includes("ADMIN") ?? false);
-const metrics = computed(() => (isAdmin.value ? ADMIN_METRICS : STAFF_METRICS));
 const firstName = computed(() =>
   (user.value?.full_name || user.value?.email || "bạn").split(" ").at(-1),
 );
-const revenueChartPoints = computed(() =>
-  WEEKLY_REVENUE.map((day, index) => ({
-    ...day,
-    x: 48 + index * (604 / Math.max(WEEKLY_REVENUE.length - 1, 1)),
-    y: 180 - day.value * 1.4,
-  })),
-);
-const revenuePolyline = computed(() =>
-  revenueChartPoints.value.map((point) => `${String(point.x)},${String(point.y)}`).join(" "),
+
+function isoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function reportParams() {
+  return {
+    start_date: startDate.value,
+    end_date: endDate.value,
+    timezone: "Asia/Ho_Chi_Minh",
+  };
+}
+
+function formatMoney(value: string | number): string {
+  return `${new Intl.NumberFormat("vi-VN").format(Number(value))} ₫`;
+}
+
+function statusLabel(status: string): string {
+  return (
+    {
+      pending_confirmation: "Chờ xác nhận",
+      confirmed: "Đã xác nhận",
+      preparing: "Đang chuẩn bị",
+      shipped: "Đang giao",
+      delivered: "Đã giao",
+      completed: "Hoàn tất",
+      cancelled: "Đã hủy",
+    }[status] ?? status
+  );
+}
+
+const metrics = computed(() => {
+  const data = dashboard.value;
+  if (!data) return [];
+  if (!isAdmin.value || !data.finance) {
+    return [
+      {
+        label: "Chờ xác nhận",
+        value: data.queue.pending_confirmation ?? 0,
+        helper: "đơn cần xử lý",
+      },
+      { label: "Đang chuẩn bị", value: data.queue.preparing ?? 0, helper: "đơn trong kho" },
+      { label: "Đang giao", value: data.queue.shipped ?? 0, helper: "đơn đang vận chuyển" },
+      { label: "Đã giao", value: data.queue.delivered ?? 0, helper: "chờ khách xác nhận" },
+      { label: "SKU sắp hết", value: data.low_stock_count, helper: "dưới ngưỡng an toàn" },
+    ];
+  }
+  return [
+    {
+      label: "Doanh thu thuần",
+      value: formatMoney(data.finance.net_revenue),
+      helper:
+        data.finance.revenue_change_percent === null
+          ? "kỳ trước chưa có doanh thu"
+          : `${Number(data.finance.revenue_change_percent) >= 0 ? "+" : ""}${data.finance.revenue_change_percent}% so với kỳ trước`,
+    },
+    {
+      label: "Đơn đã thanh toán",
+      value: data.finance.paid_order_count,
+      helper: "trong kỳ hiện tại",
+    },
+    {
+      label: "Lợi nhuận",
+      value: formatMoney(data.finance.profit),
+      helper: `Giá vốn ${formatMoney(data.finance.cost_of_goods_sold)}`,
+    },
+    { label: "SKU sắp hết", value: data.low_stock_count, helper: "cần bổ sung tồn" },
+  ];
+});
+
+const chartPoints = computed(() => {
+  const source = dashboard.value?.revenue_series ?? [];
+  const max = Math.max(...source.map((item) => Number(item.revenue)), 1);
+  return source.map((item, index) => ({
+    ...item,
+    x: 48 + index * (604 / Math.max(source.length - 1, 1)),
+    y: 180 - (Number(item.revenue) / max) * 135,
+  }));
+});
+const chartPolyline = computed(() =>
+  chartPoints.value.map((point) => `${String(point.x)},${String(point.y)}`).join(" "),
 );
 
-onMounted(async () => {
+async function loadDashboard(): Promise<void> {
+  loading.value = true;
+  errorMessage.value = "";
   try {
-    await verifyAdminAccessRequest();
+    dashboard.value = await fetchDashboard(reportParams());
   } catch (error) {
-    accessError.value = toAppError(error).message;
+    errorMessage.value = toAppError(error).message;
   } finally {
-    accessLoading.value = false;
+    loading.value = false;
   }
-});
+}
+
+onMounted(loadDashboard);
 </script>
 
 <template>
@@ -51,158 +128,141 @@ onMounted(async () => {
     <div class="space-y-7">
       <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div class="flex flex-wrap items-center gap-2">
-            <p class="text-xs font-black tracking-[0.18em] text-emerald-400 uppercase">
-              {{ isAdmin ? "Tổng quan kinh doanh" : "Bảng công việc trong ca" }}
-            </p>
-            <span
-              class="rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-1 text-[10px] font-bold text-amber-300"
-              >Dữ liệu minh họa</span
-            >
-          </div>
-          <h1 class="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
+          <p class="text-xs font-black tracking-[0.18em] text-emerald-400 uppercase">
+            {{ isAdmin ? "Tổng quan kinh doanh" : "Bảng công việc trong ca" }}
+          </p>
+          <h1 class="mt-2 text-2xl font-black text-white sm:text-3xl">
             Chào {{ firstName }}, hôm nay cần làm gì?
           </h1>
-          <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-            {{
-              isAdmin
-                ? "Theo dõi nhanh sức khỏe cửa hàng và đi thẳng tới khu vực cần xử lý."
-                : "Ưu tiên đơn mới, đơn đang chuẩn bị và các SKU sắp hết trong ca làm việc."
-            }}
+          <p class="mt-2 text-sm text-slate-400">
+            Dữ liệu thật được tổng hợp theo múi giờ Việt Nam và cập nhật từ hệ thống vận hành.
           </p>
         </div>
-        <p class="text-xs font-semibold text-slate-500">Cập nhật giả lập: 10:45 · 18/09/2026</p>
+        <div class="grid grid-cols-2 gap-2 sm:flex sm:items-end">
+          <FormField v-slot="field" label="Từ ngày" name="dashboard-start">
+            <BaseInput
+              v-model="startDate"
+              :id="field.id"
+              name="start_date"
+              type="date"
+              :invalid="field.invalid"
+              :aria-describedby="field.describedBy"
+            />
+          </FormField>
+          <FormField v-slot="field" label="Đến ngày" name="dashboard-end">
+            <BaseInput
+              v-model="endDate"
+              :id="field.id"
+              name="end_date"
+              type="date"
+              :invalid="field.invalid"
+              :aria-describedby="field.describedBy"
+            />
+          </FormField>
+          <BaseButton
+            variant="secondary"
+            size="sm"
+            class="col-span-2"
+            :loading="loading"
+            @click="loadDashboard"
+          >
+            Áp dụng
+          </BaseButton>
+        </div>
       </header>
 
-      <AppAlert v-if="accessError" variant="error" title="Không thể xác minh quyền">{{
-        accessError
-      }}</AppAlert>
-      <div v-else-if="accessLoading" class="h-1 overflow-hidden rounded-full bg-white/5">
-        <div class="h-full w-1/3 animate-pulse rounded-full bg-emerald-500" />
-      </div>
+      <AppAlert v-if="errorMessage" variant="error" title="Không tải được dashboard">
+        {{ errorMessage }}
+      </AppAlert>
 
-      <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Chỉ số tổng quan">
+      <section v-if="loading && !dashboard" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div v-for="index in 4" :key="index" class="h-32 animate-pulse rounded-2xl bg-white/5" />
+      </section>
+      <section
+        v-else
+        class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        aria-label="Chỉ số tổng quan"
+      >
         <article
           v-for="metric in metrics"
           :key="metric.label"
-          class="rounded-2xl border border-white/10 bg-[#12151e] p-5 shadow-[0_18px_45px_-30px_rgba(0,0,0,0.9)]"
+          class="rounded-2xl border border-white/10 bg-[#12151e] p-5"
         >
-          <div class="flex items-start justify-between gap-3">
-            <p class="text-xs font-bold tracking-wider text-slate-400 uppercase">
-              {{ metric.label }}
-            </p>
-            <span
-              :class="[
-                'rounded-full px-2 py-1 text-[10px] font-black',
-                metric.trend === 'up'
-                  ? 'bg-emerald-500/15 text-emerald-400'
-                  : metric.trend === 'down'
-                    ? 'bg-amber-400/15 text-amber-300'
-                    : 'bg-sky-400/15 text-sky-300',
-              ]"
-              >{{ metric.change }}</span
-            >
-          </div>
-          <p class="mt-5 text-3xl font-black tracking-tight text-white">{{ metric.value }}</p>
+          <p class="text-xs font-bold tracking-wider text-slate-400 uppercase">
+            {{ metric.label }}
+          </p>
+          <p class="mt-5 text-3xl font-black text-white">{{ metric.value }}</p>
           <p class="mt-1 text-xs text-slate-500">{{ metric.helper }}</p>
         </article>
       </section>
 
-      <div class="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(22rem,0.7fr)]">
+      <div class="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(20rem,0.7fr)]">
         <section class="rounded-2xl border border-white/10 bg-[#12151e] p-5 sm:p-6">
-          <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center justify-between">
             <div>
               <p class="text-xs font-black tracking-wider text-emerald-400 uppercase">
                 Luồng đơn hàng
               </p>
               <h2 class="mt-1 text-lg font-black text-white">Hàng đợi cần xử lý</h2>
             </div>
-            <AppLink
-              to="/admin/orders"
-              class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 no-underline hover:text-white"
-              >Mở đơn hàng</AppLink
-            >
+            <AppLink to="/admin/orders" class="text-xs text-emerald-400">Mở đơn hàng →</AppLink>
           </div>
           <div class="mt-5 grid gap-3 sm:grid-cols-2">
-            <AppLink
-              v-for="queue in ORDER_QUEUE"
-              :key="queue.label"
-              :to="{ path: '/admin/orders' }"
-              class="group flex items-center justify-between gap-4 rounded-xl border border-white/8 bg-white/[0.025] p-4 no-underline hover:border-white/20 hover:bg-white/[0.045]"
+            <article
+              v-for="status in [
+                'pending_confirmation',
+                'preparing',
+                'shipped',
+                'delivered',
+                'completed',
+              ]"
+              :key="status"
+              class="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.025] p-4"
             >
-              <div>
-                <p class="text-sm font-bold text-white">{{ queue.label }}</p>
-                <p class="mt-1 text-xs leading-5 text-slate-500">{{ queue.helper }}</p>
-              </div>
+              <p class="text-sm font-bold text-white">{{ statusLabel(status) }}</p>
               <span
-                :class="[
-                  'grid h-11 w-11 shrink-0 place-items-center rounded-xl text-lg font-black',
-                  queue.tone === 'amber'
-                    ? 'bg-amber-400/15 text-amber-300'
-                    : queue.tone === 'sky'
-                      ? 'bg-sky-400/15 text-sky-300'
-                      : queue.tone === 'violet'
-                        ? 'bg-violet-400/15 text-violet-300'
-                        : 'bg-emerald-500/15 text-emerald-400',
-                ]"
-                >{{ queue.count }}</span
+                class="grid h-10 min-w-10 place-items-center rounded-xl bg-emerald-500/15 px-2 font-black text-emerald-400"
               >
-            </AppLink>
+                {{ dashboard?.queue[status] ?? 0 }}
+              </span>
+            </article>
           </div>
         </section>
 
         <section class="rounded-2xl border border-white/10 bg-[#12151e] p-5 sm:p-6">
           <p class="text-xs font-black tracking-wider text-emerald-400 uppercase">Thao tác nhanh</p>
-          <h2 class="mt-1 text-lg font-black text-white">Đi thẳng tới công việc</h2>
           <div class="mt-5 space-y-3">
             <AppLink
-              to="/admin/orders"
-              class="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.025] p-4 text-sm text-white no-underline hover:border-emerald-500/30 hover:bg-emerald-500/8"
-              ><span
-                ><strong class="block">Xử lý đơn mới</strong
-                ><small class="mt-1 block text-slate-500"
-                  >Xác nhận và chuyển trạng thái</small
-                ></span
-              ><span aria-hidden="true">→</span></AppLink
+              v-for="item in [
+                { label: 'Xử lý đơn mới', to: '/admin/orders' },
+                { label: 'Kiểm tra tồn kho', to: '/admin/inventory' },
+                { label: 'Mở báo cáo', to: '/admin/reports' },
+              ]"
+              :key="item.to"
+              :to="item.to"
+              class="flex justify-between rounded-xl border border-white/10 p-4 text-sm font-bold text-white no-underline hover:border-emerald-500/30"
             >
-            <AppLink
-              to="/admin/inventory"
-              class="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.025] p-4 text-sm text-white no-underline hover:border-emerald-500/30 hover:bg-emerald-500/8"
-              ><span
-                ><strong class="block">Kiểm tra tồn kho</strong
-                ><small class="mt-1 block text-slate-500"
-                  >Nhập hàng hoặc điều chỉnh SKU</small
-                ></span
-              ><span aria-hidden="true">→</span></AppLink
-            >
-            <AppLink
-              v-if="isAdmin"
-              to="/admin/products"
-              class="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.025] p-4 text-sm text-white no-underline hover:border-emerald-500/30 hover:bg-emerald-500/8"
-              ><span
-                ><strong class="block">Thêm sản phẩm</strong
-                ><small class="mt-1 block text-slate-500">Tạo nội dung và ảnh bán hàng</small></span
-              ><span aria-hidden="true">→</span></AppLink
-            >
+              {{ item.label }} <span>→</span>
+            </AppLink>
           </div>
         </section>
       </div>
 
       <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <section v-if="isAdmin" class="rounded-2xl border border-white/10 bg-[#12151e] p-5 sm:p-6">
-          <div class="flex items-end justify-between gap-3">
-            <div>
-              <p class="text-xs font-black tracking-wider text-emerald-400 uppercase">
-                7 ngày gần nhất
-              </p>
-              <h2 class="mt-1 text-lg font-black text-white">Xu hướng doanh thu</h2>
-            </div>
-            <p class="text-xs text-slate-500">Đơn vị tương đối · mock</p>
-          </div>
-          <div class="mt-5 overflow-hidden" role="img" aria-label="Biểu đồ đường doanh thu 7 ngày">
+          <p class="text-xs font-black tracking-wider text-emerald-400 uppercase">
+            7 ngày gần nhất
+          </p>
+          <h2 class="mt-1 text-lg font-black text-white">Xu hướng doanh thu thực tế</h2>
+          <div
+            v-if="chartPoints.length"
+            class="mt-5 overflow-hidden"
+            role="img"
+            aria-label="Biểu đồ doanh thu"
+          >
             <svg class="h-56 w-full" viewBox="0 0 700 220" preserveAspectRatio="none">
               <line
-                v-for="y in [40, 75, 110, 145, 180]"
+                v-for="y in [45, 90, 135, 180]"
                 :key="y"
                 x1="48"
                 :y1="y"
@@ -212,42 +272,32 @@ onMounted(async () => {
                 stroke-dasharray="4 6"
               />
               <polyline
-                :points="revenuePolyline"
+                :points="chartPolyline"
                 fill="none"
                 class="stroke-emerald-500"
                 stroke-width="4"
-                stroke-linecap="round"
-                stroke-linejoin="round"
                 vector-effect="non-scaling-stroke"
               />
-              <g v-for="point in revenueChartPoints" :key="point.label">
+              <g v-for="point in chartPoints" :key="point.date">
                 <circle
                   :cx="point.x"
                   :cy="point.y"
-                  r="6"
+                  r="5"
                   class="fill-white stroke-emerald-500"
-                  stroke-width="4"
-                  vector-effect="non-scaling-stroke"
+                  stroke-width="3"
                 />
-                <text
-                  :x="point.x"
-                  :y="point.y - 14"
-                  text-anchor="middle"
-                  class="fill-slate-500 text-[11px] font-bold"
-                >
-                  {{ point.value }}
-                </text>
                 <text
                   :x="point.x"
                   y="210"
                   text-anchor="middle"
                   class="fill-slate-400 text-[11px] font-bold"
                 >
-                  {{ point.label }}
+                  {{ point.date.slice(5) }}
                 </text>
               </g>
             </svg>
           </div>
+          <p v-else class="mt-8 text-sm text-slate-500">Chưa có doanh thu trong kỳ này.</p>
         </section>
 
         <section
@@ -259,20 +309,23 @@ onMounted(async () => {
           <p class="text-xs font-black tracking-wider text-emerald-400 uppercase">
             Hoạt động gần đây
           </p>
-          <h2 class="mt-1 text-lg font-black text-white">Nhật ký vận hành</h2>
-          <ol class="mt-5 space-y-4">
+          <h2 class="mt-1 text-lg font-black text-white">Nhật ký đơn hàng</h2>
+          <ol v-if="dashboard?.recent_activity.length" class="mt-5 space-y-4">
             <li
-              v-for="activity in RECENT_ACTIVITY"
-              :key="`${activity.time}-${activity.title}`"
-              class="grid grid-cols-[2.75rem_1fr] gap-3"
+              v-for="activity in dashboard.recent_activity"
+              :key="`${activity.order__number}-${activity.created_at}`"
+              class="border-l border-white/10 pl-3"
             >
-              <span class="pt-0.5 text-xs font-black text-emerald-400">{{ activity.time }}</span>
-              <div class="border-l border-white/10 pl-3">
-                <p class="text-sm font-semibold leading-5 text-slate-200">{{ activity.title }}</p>
-                <p class="mt-1 text-xs text-slate-500">{{ activity.actor }}</p>
-              </div>
+              <p class="text-sm font-semibold text-slate-200">
+                {{ activity.order__number }} · {{ statusLabel(activity.to_status) }}
+              </p>
+              <p class="mt-1 text-xs text-slate-500">
+                {{ activity.actor__email || "Hệ thống" }} ·
+                {{ new Date(activity.created_at).toLocaleString("vi-VN") }}
+              </p>
             </li>
           </ol>
+          <p v-else class="mt-5 text-sm text-slate-500">Chưa có hoạt động.</p>
         </section>
       </div>
     </div>

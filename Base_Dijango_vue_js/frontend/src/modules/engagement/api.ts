@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/http/client";
+import type { PaginatedResponse } from "@/lib/http/pagination";
 import type {
   Banner,
   BannerInput,
@@ -71,6 +72,13 @@ export async function fetchAdminVouchers(): Promise<Voucher[]> {
   return unwrapList(response.data);
 }
 
+export async function fetchAdminVouchersPage(page = 1): Promise<PaginatedResponse<Voucher>> {
+  const response = await apiClient.get<PaginatedResponse<Voucher>>("/api/v1/admin/vouchers/", {
+    params: { page },
+  });
+  return response.data;
+}
+
 export async function createAdminVoucher(payload: VoucherInput): Promise<Voucher> {
   const response = await apiClient.post<Voucher>("/api/v1/admin/vouchers/", payload);
   return response.data;
@@ -95,6 +103,16 @@ export async function fetchAdminReviews(status?: Review["status"]): Promise<Revi
   return unwrapList(response.data);
 }
 
+export async function fetchAdminReviewsPage(
+  page = 1,
+  status?: Review["status"],
+): Promise<PaginatedResponse<Review>> {
+  const response = await apiClient.get<PaginatedResponse<Review>>("/api/v1/admin/reviews/", {
+    params: { page, status: status || undefined },
+  });
+  return response.data;
+}
+
 export async function moderateAdminReview(
   id: number,
   status: "approved" | "rejected",
@@ -110,6 +128,13 @@ export async function moderateAdminReview(
 export async function fetchAdminBanners(): Promise<Banner[]> {
   const response = await apiClient.get<Banner[] | { results: Banner[] }>("/api/v1/admin/banners/");
   return unwrapList(response.data);
+}
+
+export async function fetchAdminBannersPage(page = 1): Promise<PaginatedResponse<Banner>> {
+  const response = await apiClient.get<PaginatedResponse<Banner>>("/api/v1/admin/banners/", {
+    params: { page },
+  });
+  return response.data;
 }
 
 export async function createAdminBanner(payload: BannerInput): Promise<Banner> {
